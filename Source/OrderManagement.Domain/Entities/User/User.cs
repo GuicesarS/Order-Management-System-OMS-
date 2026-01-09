@@ -1,4 +1,5 @@
-﻿using OrderManagement.Domain.ValueObjects;
+﻿using OrderManagement.Domain.Enums;
+using OrderManagement.Domain.ValueObjects;
 
 namespace OrderManagement.Domain.Entities.User;
 
@@ -8,14 +9,16 @@ public class User
     public string Name { get; private set; }
     public Email Email { get; private set; }
     public DateTime CreatedAt{ get; private set; }
+    public UserRole Role { get; private set; }
 
     protected User() { } // Ef Core
 
-    public User(string name, Email email)
+    public User(string name, Email email, UserRole role)
     {
         Id = Guid.NewGuid();
         Name = name;
         Email = email;
         CreatedAt = DateTime.UtcNow;
+        Role = role;
     }
 }
