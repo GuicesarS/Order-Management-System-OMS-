@@ -4,7 +4,7 @@ namespace OrderManagement.Domain.Interfaces;
 
 public interface IUserRepository
 {
-    User? GetOrderById(Guid userId);
+    User? GetUserById(Guid userId);
     IEnumerable<User> GetAll();
     void Add(User order);
     void Update(User order);

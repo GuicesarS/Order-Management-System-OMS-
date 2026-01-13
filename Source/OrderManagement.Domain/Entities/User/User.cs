@@ -21,4 +21,23 @@ public class User
         CreatedAt = DateTime.UtcNow;
         Role = role;
     }
+
+    public void UpdateName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("Name cannot be empty.");
+
+        Name = name;
+    }
+
+    public void UpdateEmail(Email email)
+    {
+        Email = email ?? throw new ArgumentNullException(nameof(email));
+    }
+
+    public void UpdateRole(UserRole role)
+    {
+        Role = role;
+    }
+
 }
