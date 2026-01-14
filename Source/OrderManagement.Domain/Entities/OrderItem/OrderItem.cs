@@ -26,4 +26,19 @@ public class OrderItem
         LineTotal = quantity * unitPrice;
     }
 
+    public void UpdateQuantity(int quantity)
+    {
+        if (quantity < 1)
+            throw new ArgumentException("Quantity must be at least 1.");
+        Quantity = quantity;
+    }
+
+    public void UpdateUnitPrice(decimal unitPrice)
+    {
+        if (unitPrice < 0)
+            throw new ArgumentException("UnitPrice must be greater or equal to 0.");
+        UnitPrice = unitPrice;
+    }
+
+
 }

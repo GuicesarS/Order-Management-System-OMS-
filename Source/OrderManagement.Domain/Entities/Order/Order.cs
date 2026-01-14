@@ -14,15 +14,17 @@ public class Order
     private readonly List<OrderItem.OrderItem> _items = new();
     public IReadOnlyCollection<OrderItem.OrderItem> Items => _items.AsReadOnly();
 
-    protected Order() { } // Ef Core
+    protected Order() { } // EF Core
 
     public Order(Guid customerId)
     {
+        if (customerId == Guid.Empty)
+            throw new ArgumentException("CustomerId is required.");
+
         Id = Guid.NewGuid();
         CustomerId = customerId;
         Status = OrderStatus.Pending;
         CreatedAt = DateTime.UtcNow;
-
     }
 
     public void AddItem(Guid productId, int quantity, decimal unitPrice)
@@ -33,16 +35,47 @@ public class Order
             throw new ArgumentException("UnitPrice must be greater or equal to 0.");
 
         var item = new OrderItem.OrderItem(Id, productId, quantity, unitPrice);
-
         _items.Add(item);
 
-        TotalAmount = _items.Sum(i => i.LineTotal);
+        RecalculateTotal();
+    }
 
+    public void UpdateItem(Guid productId, int quantity, decimal unitPrice)
+    {
+        var item = _items.FirstOrDefault(i => i.ProductId == productId);
+        if (item is null)
+            throw new ArgumentException("Item not found in order.");
+
+        item.UpdateQuantity(quantity);
+        item.UpdateUnitPrice(unitPrice);
+
+        RecalculateTotal();
+    }
+
+    public void RemoveItem(Guid productId)
+    {
+        var item = _items.FirstOrDefault(i => i.ProductId == productId);
+        if (item is null)
+            throw new ArgumentException("Item not found in order.");
+
+        _items.Remove(item);
+
+        RecalculateTotal();
     }
 
     public void MarkAsPaid()
     {
         Status = OrderStatus.Paid;
         PaidAt = DateTime.UtcNow;
+    }
+
+    public void MarkAsCancelled()
+    {
+        Status = OrderStatus.Cancelled;
+    }
+
+    private void RecalculateTotal()
+    {
+        TotalAmount = _items.Sum(i => i.LineTotal);
     }
 }

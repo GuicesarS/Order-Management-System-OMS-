@@ -7,7 +7,7 @@ namespace OrderManagement.Application.Interfaces;
 public interface IOrderService
 {
     Result<OrderResponse> Create(CreateOrderDto createOrderDto);
-    Result<OrderResponse> Update(UpdateOrderDto updateOrderDto);
+    Result<OrderResponse> Update(Guid id, UpdateOrderDto updateOrderDto);
     Result<OrderResponse> GetById(Guid id);
     Result<IEnumerable<OrderResponse>> GetAll();
     Result<bool> Delete(Guid id);
