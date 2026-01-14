@@ -24,4 +24,23 @@ public class Customer
         Address = address;
         CreatedAt = DateTime.UtcNow;
     }
+
+    public void ApplyChanges(string? name, string? email, string? phone, string? address)
+    {
+        if (!string.IsNullOrWhiteSpace(name))
+            UpdateName(name);
+
+        if (!string.IsNullOrWhiteSpace(email))
+            UpdateEmail(Email.Create(email));
+
+        if (!string.IsNullOrWhiteSpace(phone))
+            UpdatePhone(phone);
+
+        if (!string.IsNullOrWhiteSpace(address))
+            UpdateAddress(address);
+    }
+    public void UpdateName(string name) => Name = name;
+    public void UpdateEmail(Email email) => Email = email;
+    public void UpdatePhone(string phone) => Phone = phone;
+    public void UpdateAddress(string address) => Address = address;
 }

@@ -7,7 +7,7 @@ namespace OrderManagement.Application.Interfaces;
 public interface ICustomerService
 {
     Result<CustomerResponse> Create(CreateCustomerDto createCustomerDto);
-    Result<CustomerResponse> Update(UpdateCustomerDto updateCustomerDto);
+    Result<CustomerResponse> Update(Guid id, UpdateCustomerDto updateCustomerDto);
     Result<CustomerResponse> GetById(Guid id);
     Result<IEnumerable<CustomerResponse>> GetAll();
     Result<bool> Delete(Guid id);
