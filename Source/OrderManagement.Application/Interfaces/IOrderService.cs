@@ -1,14 +1,14 @@
 ﻿using OrderManagement.Application.Common;
-using OrderManagement.Communication.Dtos.Order;
 using OrderManagement.Communication.Responses;
+using OrderManagement.Domain.Entities.Order;
 
 namespace OrderManagement.Application.Interfaces;
 
 public interface IOrderService
 {
-    Result<OrderResponse> Create(CreateOrderDto createOrderDto);
-    Result<OrderResponse> Update(Guid id, UpdateOrderDto updateOrderDto);
-    Result<OrderResponse> GetById(Guid id);
+    Result<OrderResponse> Create(Order order);
+    Result<OrderResponse> Update(Guid id, Order order);
+    Result<OrderResponse> GetOrderById(Guid id);
     Result<IEnumerable<OrderResponse>> GetAll();
     Result<bool> Delete(Guid id);
 }

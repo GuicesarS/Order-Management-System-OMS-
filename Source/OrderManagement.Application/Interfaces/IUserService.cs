@@ -1,14 +1,14 @@
 ﻿using OrderManagement.Application.Common;
-using OrderManagement.Communication.Dtos.User;
 using OrderManagement.Communication.Responses;
+using OrderManagement.Domain.Entities.User;
 
 namespace OrderManagement.Application.Interfaces;
 
 public interface IUserService
 {
-    Result<UserResponse> Create(CreateUserDto createUserDto);
-    Result<UserResponse> Update(Guid id, UpdateUserDto updateUserDto);
-    Result<UserResponse> GetById(Guid id);
+    Result<UserResponse> Create(User user);
+    Result<UserResponse> Update(Guid id, User user);
+    Result<UserResponse> GetUserById(Guid id);
     Result<IEnumerable<UserResponse>> GetAll();
     Result<bool> Delete(Guid id);
 }
