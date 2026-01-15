@@ -4,9 +4,9 @@ namespace OrderManagement.Domain.Interfaces;
 
 public interface IOrderRepository
 {
-    Order? GetOrderById(Guid orderId);
-    IEnumerable<Order> GetAll();
-    void Add(Order order);
-    void Update(Order order);
-    void Delete(Guid id);
+    Task<Order?> GetOrderByIdAsync(Guid orderId);
+    Task<IEnumerable<Order>> GetAllAsync();
+    Task AddAsync(Order order);
+    Task UpdateAsync(Order order);
+    Task DeleteAsync(Guid id);
 }
