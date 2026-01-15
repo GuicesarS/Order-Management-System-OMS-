@@ -4,9 +4,10 @@ namespace OrderManagement.Domain.Interfaces;
 
 public interface IUserRepository
 {
-    User? GetUserById(Guid userId);
-    IEnumerable<User> GetAll();
-    void Add(User order);
-    void Update(User order);
-    void Delete(Guid id);
+    Task<User?> GetUserByIdAsync(Guid userId);
+    Task<IEnumerable<User>> GetAllAsync();
+    Task<User?> GetUserByEmailAsync(string email);
+    Task AddAsync(User user);
+    Task UpdateAsync(User user);
+    Task DeleteAsync(Guid id);
 }
