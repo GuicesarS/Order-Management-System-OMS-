@@ -38,7 +38,7 @@ public class OrderRepository : IOrderRepository
             .ToListAsync();
     }
 
-    public async Task<Order?> GetOrderById(Guid orderId)
+    public async Task<Order?> GetOrderByIdAsync(Guid orderId)
     {
         return await _dbContext.Orders
            .AsNoTracking()
