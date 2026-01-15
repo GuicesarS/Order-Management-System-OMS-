@@ -6,9 +6,9 @@ namespace OrderManagement.Application.Interfaces;
 
 public interface IUserService
 {
-    Result<UserResponse> Create(User user);
-    Result<UserResponse> Update(Guid id, User user);
-    Result<UserResponse> GetUserById(Guid id);
-    Result<IEnumerable<UserResponse>> GetAll();
-    Result<bool> Delete(Guid id);
+    Task<Result<UserResponse>> Create(User user);
+    Task<Result<UserResponse>> Update(Guid id, User user);
+    Task<Result<UserResponse>> GetUserById(Guid id);
+    Task<Result<IEnumerable<UserResponse>>> GetAll();
+    Task<Result<bool>> Delete(Guid id);
 }

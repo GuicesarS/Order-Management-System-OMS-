@@ -1,6 +1,6 @@
 ﻿using ExpressMapper;
 
-namespace OrderManagement.API.Configurations.CustomMapping;
+namespace OrderManagement.Application.Common.CustomMapping;
 
 public class CustomMapper : ICustomMapper
 {

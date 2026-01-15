@@ -1,4 +1,4 @@
-﻿namespace OrderManagement.API.Configurations.CustomMapping;
+﻿namespace OrderManagement.Application.Common.CustomMapping;
 
 public interface ICustomMapper
 {

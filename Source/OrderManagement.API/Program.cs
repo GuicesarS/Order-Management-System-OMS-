@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrderManagement.API.Configurations;
-using OrderManagement.API.Configurations.CustomMapping;
 using OrderManagement.Application;
+using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Infrastructure;
 using OrderManagement.Infrastructure.Data;
 
