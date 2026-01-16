@@ -6,9 +6,9 @@ namespace OrderManagement.Application.Interfaces;
 
 public interface ICustomerService
 {
-    Result<CustomerResponse> Create(Customer customer);
-    Result<CustomerResponse> Update(Guid id, Customer customer);
-    Result<CustomerResponse> GetCustomerById(Guid id);
-    Result<IEnumerable<CustomerResponse>> GetAll();
-    Result<bool> Delete(Guid id);
+    Task<Result<CustomerResponse>> Create(Customer customer);
+    Task<Result<CustomerResponse>> Update(Guid id, Customer updateCustomer);
+    Task<Result<CustomerResponse>> GetCustomerById(Guid id);
+    Task<Result<IEnumerable<CustomerResponse>>> GetAll();
+    Task<Result<bool>> Delete(Guid id);
 }
