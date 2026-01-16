@@ -88,12 +88,15 @@ public class OrderManagementDbContext : DbContext
             
             builder.HasOne<Customer>()
                    .WithMany()
-                   .HasForeignKey(o => o.CustomerId);
+                   .HasForeignKey(o => o.CustomerId)
+                   .OnDelete(DeleteBehavior.Cascade);
 
             
             builder.HasMany(o => o.Items)
                    .WithOne()
-                   .HasForeignKey(i => i.OrderId);
+                   .HasForeignKey(i => i.OrderId)
+                   .OnDelete(DeleteBehavior.Cascade);
+            ;
         });
 
        
@@ -111,7 +114,9 @@ public class OrderManagementDbContext : DbContext
            
             builder.HasOne<Product>()
                    .WithMany()
-                   .HasForeignKey(i => i.ProductId);
+                   .HasForeignKey(i => i.ProductId)
+                   .OnDelete(DeleteBehavior.Restrict);
+            ;
         });
     }
 }
