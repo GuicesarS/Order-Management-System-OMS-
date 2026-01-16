@@ -1,9 +1,13 @@
 ﻿using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
+using OrderManagement.Application.Exceptions;
 using OrderManagement.Application.Interfaces;
+using OrderManagement.Communication.Dtos.User;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.User;
+using OrderManagement.Domain.Enums;
 using OrderManagement.Domain.Interfaces;
+using OrderManagement.Domain.ValueObjects;
 
 namespace OrderManagement.Application.Services;
 
@@ -18,25 +22,34 @@ public class UserService : IUserService
         _mapper = mapper;
     }
 
-    public async Task<Result<UserResponse>> Create(User user)
+    public async Task<Result<UserResponse>> Create(CreateUserDto userDto)
     {
+        var user = new User(
+            userDto.Name,
+            Email.Create(userDto.Email),
+            Enum.Parse<UserRole>(userDto.Role)
+        );
+
         await _repository.AddAsync(user);
 
         var response = _mapper.Map<User, UserResponse>(user);
         return Result<UserResponse>.Ok(response);
+
     }
 
-    public async Task<Result<UserResponse>> Update(Guid id, User updatedUser)
+    public async Task<Result<UserResponse>> Update(Guid id, UpdateUserDto updatedUser)
     {
         var existingUser = await _repository.GetUserByIdAsync(id);
 
         if (existingUser is null)
-            return Result<UserResponse>.Failure("User not found.");
+            throw new NotFoundException($"User with {id} was not found.");
 
-        existingUser.UpdateName(updatedUser.Name);
-        existingUser.UpdateEmail(updatedUser.Email);
-        existingUser.UpdateRole(updatedUser.Role);
-
+        existingUser.UpdateUser(
+            updatedUser.Name,
+            Email.Create(updatedUser.Email),
+            Enum.Parse<UserRole>(updatedUser.Role, ignoreCase: true)
+        );
+       
         await _repository.UpdateAsync(existingUser);
 
         var response = _mapper.Map<User, UserResponse>(existingUser);
@@ -48,7 +61,7 @@ public class UserService : IUserService
         var user = await _repository.GetUserByIdAsync(id);
 
         if (user is null)
-            return Result<UserResponse>.Failure("User not found.");
+            throw new NotFoundException($"User with {id} was not found.");
 
         var response = _mapper.Map<User, UserResponse>(user);
         return Result<UserResponse>.Ok(response);
@@ -67,7 +80,7 @@ public class UserService : IUserService
         var user = await _repository.GetUserByIdAsync(id);
 
         if (user is null)
-            return Result<bool>.Failure("User not found.");
+            throw new NotFoundException($"User with {id} was not found.");
 
         await _repository.DeleteAsync(id);
 

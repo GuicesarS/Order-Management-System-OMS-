@@ -1,4 +1,5 @@
-﻿using System.Net.Mail;
+﻿using OrderManagement.Domain.Exception;
+using System.Net.Mail;
 
 namespace OrderManagement.Domain.ValueObjects;
 
@@ -14,8 +15,7 @@ public sealed class Email
     public static Email Create(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email is required.");
-        // add DomainException later
+            throw new DomainValidationException("Email is required.");
 
         try
         {
@@ -25,8 +25,7 @@ public sealed class Email
         }
         catch (FormatException)
         {
-            throw new ArgumentException("Email format is invalid.");
-            // add DomainException later
+            throw new DomainValidationException("Email format is invalid.");
         }
     }
 

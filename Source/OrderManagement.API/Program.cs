@@ -1,5 +1,8 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using OrderManagement.API.Configurations;
+using OrderManagement.API.Handlers;
 using OrderManagement.Application;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Infrastructure;
@@ -12,12 +15,27 @@ ExpressMappingConfig.RegisterMappings();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+
+// Add OpenAPI/Swagger services
+builder.Services.AddSwaggerGen();
+builder.Services.AddEndpointsApiExplorer();
+
+// Add Custom Mapper service
 builder.Services.AddScoped<ICustomMapper, CustomMapper>();
 
 builder.Services.AddControllers();
+
+// Add Validation DTO services
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddFluentValidationAutoValidation();
+
+//Add Exception Handling Middleware
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+// Application & Infrastructure services
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure();       
 
 // Database configuration
 builder.Services.AddDbContext<OrderManagementDbContext>(options =>
@@ -28,10 +46,15 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+   app.UseSwagger();
+   app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+
+app.UseExceptionHandler();
+
+app.MapControllers();
 
 app.Run();
 
