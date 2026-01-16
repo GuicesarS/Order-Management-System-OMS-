@@ -1,9 +1,9 @@
 ﻿using OrderManagement.Application.Common;
+using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Interfaces;
-using OrderManagement.Application.Validators.Order;
-using OrderManagement.Communication.Dtos.Order;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.Order;
+using OrderManagement.Domain.Enums;
 using OrderManagement.Domain.Interfaces;
 
 namespace OrderManagement.Application.Services;
@@ -11,146 +11,79 @@ namespace OrderManagement.Application.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _repository;
+    private readonly ICustomMapper _mapper;
 
-    public OrderService(IOrderRepository repository)
+    public OrderService(IOrderRepository repository, ICustomMapper mapper)
     {
         _repository = repository;
-    }
-    public Result<OrderResponse> Create(CreateOrderDto createOrderDto)
-    {
-        var validator = new CreateOrderDtoValidator();
-        var validationResult = validator.Validate(createOrderDto);
-
-        if (!validationResult.IsValid)
-        {
-            var errorMessages = validationResult.Errors
-                .Select(error => error.ErrorMessage)
-                .ToList();
-
-            var combinedErrorMessage = string.Join("; ", errorMessages);
-
-            return Result<OrderResponse>.Failure(combinedErrorMessage);
-
-        }
-
-        var order = new Order(createOrderDto.CustomerId);
-
-        foreach (var dtoItems in createOrderDto.Items)
-        {
-            order.AddItem(dtoItems.ProductId, dtoItems.Quantity, dtoItems.UnitPrice);
-        }
-
-        _repository.Add(order);
-
-        return Result<OrderResponse>.Ok(MapToOrderResponse(order));
-
-
-    }
-    public Result<OrderResponse> Update(Guid id, UpdateOrderDto updateOrderDto)
-    {
-        var validator = new UpdateOrderDtoValidator();
-        var validationResult = validator.Validate(updateOrderDto);
-
-        if (!validationResult.IsValid)
-        {
-            var errorMessages = validationResult.Errors
-                .Select(error => error.ErrorMessage)
-                .ToList();
-
-            var combinedErrorMessage = string.Join("; ", errorMessages);
-
-            return Result<OrderResponse>.Failure(combinedErrorMessage);
-
-        }
-
-        var order = _repository.GetOrderById(id);
-
-        if (order is null)
-           return Result<OrderResponse>.Failure("Order not found.");
-
-        if (!string.IsNullOrEmpty(updateOrderDto.Status))
-        {
-            if (updateOrderDto.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
-                order.MarkAsPaid();
-            else if (updateOrderDto.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
-                order.MarkAsCancelled(); 
-        }
-
-        // Atualizar status
-        if (!string.IsNullOrEmpty(updateOrderDto.Status))
-        {
-            if (updateOrderDto.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
-                order.MarkAsPaid();
-            else if (updateOrderDto.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
-                order.MarkAsCancelled();
-        }
-
-        // Atualizar itens
-        if (updateOrderDto.Items is not null)
-        {
-            foreach (var itemDto in updateOrderDto.Items)
-            {
-                var existingItem = order.Items.FirstOrDefault(i => i.ProductId == itemDto.ProductId);
-                if (existingItem is not null)
-                {
-                    order.UpdateItem(itemDto.ProductId!.Value, itemDto.Quantity!.Value, itemDto.UnitPrice!.Value);
-                }
-                else if (itemDto.ProductId != Guid.Empty && itemDto.Quantity.HasValue && itemDto.UnitPrice.HasValue)
-                {
-                    order.AddItem(itemDto.ProductId!.Value, itemDto.Quantity.Value, itemDto.UnitPrice.Value);
-                }
-            }
-        }
-
-        _repository.Update(order);
-
-        return Result<OrderResponse>.Ok(MapToOrderResponse(order));
+        _mapper = mapper;
     }
 
-    public Result<OrderResponse> GetById(Guid id)
+    public async Task<Result<OrderResponse>> Create(Order order)
     {
-        var order = _repository.GetOrderById(id);
+       await _repository.AddAsync(order);
 
-        if (order is null)
+       var orderResponse = _mapper.Map<Order, OrderResponse>(order);
+       return Result<OrderResponse>.Ok(orderResponse);
+
+    }
+    public async Task<Result<OrderResponse>> Update(Guid id, Order order)
+    {
+       var existingOrder = await _repository.GetOrderByIdAsync(id);
+      
+        if(existingOrder is null)
             return Result<OrderResponse>.Failure("Order not found.");
 
-        return Result<OrderResponse>.Ok(MapToOrderResponse(order));
+        if (order.Status == OrderStatus.Paid)
+          existingOrder.MarkAsPaid();
+        else if (order.Status == OrderStatus.Shipped)
+          existingOrder.MarkAsShipped();
+        else if (order.Status == OrderStatus.Cancelled)
+            existingOrder.MarkAsCancelled();
+
+        foreach (var item in order.Items)
+        {
+            var existingItem = existingOrder
+                .Items.FirstOrDefault(i => i.ProductId == item.ProductId);
+            if (existingItem is not null)
+                existingOrder.UpdateItem(item.ProductId, item.Quantity, item.UnitPrice);
+            else
+                existingOrder.AddItem(item.ProductId, item.Quantity, item.UnitPrice);
+        }
+
+        await _repository.UpdateAsync(existingOrder);
+        var result = _mapper.Map<Order, OrderResponse>(existingOrder);
+
+        return Result<OrderResponse>.Ok(result);
     }
-
-    public Result<IEnumerable<OrderResponse>> GetAll()
+    public async Task<Result<bool>> Delete(Guid id)
     {
-       var orders = _repository.GetAll();
-       var orderResponses = orders.Select(MapToOrderResponse);
+        var existingOrder = await _repository.GetOrderByIdAsync(id);
 
-       return Result<IEnumerable<OrderResponse>>.Ok(orderResponses);
-    }
-
-    public Result<bool> Delete(Guid id)
-    {
-        var order = _repository.GetOrderById(id);
-
-        if (order is null)
+        if (existingOrder is null)
             return Result<bool>.Failure("Order not found.");
 
-        _repository.Delete(id);
-
+        await _repository.DeleteAsync(id);
         return Result<bool>.Ok(true);
+
     }
 
-    public static OrderResponse MapToOrderResponse(Order order) =>
-        new OrderResponse
-        {
-            Id = order.Id,
-            CustomerId = order.CustomerId,
-            Status = order.Status.ToString(),
-            TotalAmount = order.TotalAmount,
-            CreatedAt = order.CreatedAt,
-            PaidAt = order.PaidAt,
-            Items = order.Items.Select(item => new OrderItemResponse
-            {
-                ProductId = item.ProductId,
-                Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice
-            }).ToList()
-        };
+    public async Task<Result<IEnumerable<OrderResponse>>> GetAll()
+    {
+        var orders = await _repository.GetAllAsync();
+        var ordersResponse = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponse>>(orders);
+
+        return Result<IEnumerable<OrderResponse>>.Ok(ordersResponse);
+    }
+
+    public async Task<Result<OrderResponse>> GetOrderById(Guid id)
+    {
+        var order = await _repository.GetOrderByIdAsync(id);
+
+         if (order is null)
+              return Result<OrderResponse>.Failure("Order not found.");
+
+         var orderResponse = _mapper.Map<Order, OrderResponse>(order);
+         return Result<OrderResponse>.Ok(orderResponse);
+    }
 }

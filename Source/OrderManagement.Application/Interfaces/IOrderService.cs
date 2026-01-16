@@ -6,9 +6,9 @@ namespace OrderManagement.Application.Interfaces;
 
 public interface IOrderService
 {
-    Result<OrderResponse> Create(Order order);
-    Result<OrderResponse> Update(Guid id, Order order);
-    Result<OrderResponse> GetOrderById(Guid id);
-    Result<IEnumerable<OrderResponse>> GetAll();
-    Result<bool> Delete(Guid id);
+    Task<Result<OrderResponse>> Create(Order order);
+    Task<Result<OrderResponse>> Update(Guid id, Order order);
+    Task<Result<OrderResponse>> GetOrderById(Guid id);
+    Task<Result<IEnumerable<OrderResponse>>> GetAll();
+    Task<Result<bool>> Delete(Guid id);
 }

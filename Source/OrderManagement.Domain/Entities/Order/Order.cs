@@ -6,7 +6,7 @@ public class Order
 {
     public Guid Id { get; private set; }
     public Guid CustomerId { get; private set; }
-    public OrderStatus Status { get; private set; }
+    public OrderStatus Status { get; private set; } = OrderStatus.Pending;
     public decimal TotalAmount { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? PaidAt { get; private set; }
@@ -68,12 +68,15 @@ public class Order
         Status = OrderStatus.Paid;
         PaidAt = DateTime.UtcNow;
     }
-
-    public void MarkAsCancelled()
+    public void MarkAsCancelled() => Status = OrderStatus.Cancelled;
+    public void MarkAsShipped()
     {
-        Status = OrderStatus.Cancelled;
+        if (Status != OrderStatus.Paid)
+            throw new InvalidOperationException("Only paid orders can be shipped.");
+        
+        Status = OrderStatus.Shipped;
     }
-
+   
     private void RecalculateTotal()
     {
         TotalAmount = _items.Sum(i => i.LineTotal);
