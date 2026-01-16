@@ -1,7 +1,6 @@
 ﻿using OrderManagement.Application.Common;
+using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Interfaces;
-using OrderManagement.Application.Validators.Product;
-using OrderManagement.Communication.Dtos.Product;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.Product;
 using OrderManagement.Domain.Interfaces;
@@ -11,90 +10,66 @@ namespace OrderManagement.Application.Services;
 public class ProductService : IProductService
 {
     private readonly IProductRepository _repository;
-    public ProductService(IProductRepository repository)
+    private readonly ICustomMapper _mapper;
+
+    public ProductService(IProductRepository repository, ICustomMapper mapper)
     {
         _repository = repository;
+        _mapper = mapper;
     }
-    public Result<ProductResponse> Create(CreateProductDto createProductDto)
+
+    public async Task<Result<ProductResponse>> Create(Product product)
     {
-       var validator = new CreateProductDtoValidator();
-       var resultValidation = validator.Validate(createProductDto);
+        await _repository.AddAsync(product);
 
-        if (!resultValidation.IsValid)
-            return Result<ProductResponse>.Failure(resultValidation.Errors.First().ErrorMessage);
-        
-       var product = new Product(
-           createProductDto.Name, 
-           createProductDto.Sku, 
-           createProductDto.Price, 
-           createProductDto.StockQuantity, 
-           createProductDto.IsActive);
-
-       _repository.Add(product);
-
-        return Result<ProductResponse>.Ok(MapToProductResponse(product));
-
+        var response = _mapper.Map<Product,ProductResponse>(product);
+        return Result<ProductResponse>.Ok(response);
     }
-    public Result<ProductResponse> Update(Guid id, UpdateProductDto updateProductDto)
+    public async Task<Result<ProductResponse>> Update(Guid id, Product product)
     {
-        var validator = new UpdateProductDtoValidator();
-        var resultValidation = validator.Validate(updateProductDto);
+        var existingProduct = await _repository.GetProductById(id);
 
-        if (!resultValidation.IsValid)
-            return Result<ProductResponse>.Failure(resultValidation.Errors.First().ErrorMessage);
-
-        var product = _repository.GetProductById(id);
-        if (product is null)
+        if(existingProduct is null)
             return Result<ProductResponse>.Failure("Product not found.");
 
-        product.ApplyChanges(
-            updateProductDto.Name, 
-            updateProductDto.Sku, 
-            updateProductDto.Price, 
-            updateProductDto.StockQuantity);
+        existingProduct.ApplyChanges(
+            product.Name, 
+            product.Sku, 
+            product.Price, 
+            product.StockQuantity);
 
-        _repository.Update(product);
+        await _repository.UpdateAsync(existingProduct);
 
-        return Result<ProductResponse>.Ok(MapToProductResponse(product));
+        var response = _mapper.Map<Product,ProductResponse>(existingProduct);
 
+        return Result<ProductResponse>.Ok(response);
     }
-    public Result<ProductResponse> GetById(Guid id)
+    public async Task<Result<bool>> Delete(Guid id)
     {
-        var product = _repository.GetProductById(id);
-        if (product is null)
-            return Result<ProductResponse>.Failure("Product not found.");
-
-        return Result<ProductResponse>.Ok(MapToProductResponse(product));
-    }
-    public Result<IEnumerable<ProductResponse>> GetAll()
-    {
-        var products = _repository.GetAll();
-        var productResponses = products.Select(MapToProductResponse);
-
-        return Result<IEnumerable<ProductResponse>>.Ok(productResponses);
-    }
-
-    public Result<bool> Delete(Guid id)
-    {
-        var product = _repository.GetProductById(id);
+        var product = await _repository.GetProductById(id);
 
         if (product is null)
             return Result<bool>.Failure("Product not found.");
 
-        _repository.Delete(id);
+        await  _repository.DeleteAsync(id);
 
         return Result<bool>.Ok(true);
     }
+    public async Task<Result<IEnumerable<ProductResponse>>> GetAll()
+    {
+       var products = await _repository.GetAllAsync();
+       var response = _mapper.Map<IEnumerable<Product>, IEnumerable<ProductResponse>>(products);
+       return Result<IEnumerable<ProductResponse>>.Ok(response);
+    }
+    public async Task<Result<ProductResponse>> GetProductById(Guid id)
+    {
+       var existingProduct = await _repository.GetProductById(id);
 
-    private static ProductResponse MapToProductResponse(Product product) =>
-        new ProductResponse
-        {
-            Id = product.Id,
-            Name = product.Name,
-            Sku = product.Sku,
-            Price = product.Price,
-            StockQuantity = product.StockQuantity,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt
-        };
+       if (existingProduct is null)
+            return Result<ProductResponse>.Failure("Product not found.");
+
+       var response = _mapper.Map<Product,ProductResponse>(existingProduct);
+       return Result<ProductResponse>.Ok(response);
+    }
+
 }
