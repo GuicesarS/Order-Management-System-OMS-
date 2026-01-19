@@ -40,7 +40,7 @@ public class CustomerService : ICustomerService
         var existingCustomer = await _repository.GetCustomerById(id);
 
         if (existingCustomer is null)
-            throw new NotFoundException($"Customer with {id} was not found.");
+            throw new NotFoundException($"Customer with id: {id} was not found.");
 
         var nameForUpdate = updateCustomerDto.Name.GetValueForUpdate();
         var emailForUpdate = updateCustomerDto.Email.GetValueForUpdate();
@@ -65,7 +65,7 @@ public class CustomerService : ICustomerService
         var existingCustomer = await _repository.GetCustomerById(id);
 
         if (existingCustomer is null)
-            throw new NotFoundException($"Customer with {id} was not found.");
+            throw new NotFoundException($"Customer with id: {id} was not found.");
 
         await _repository.DeleteAsync(id);
         return Result<bool>.Ok(true);
@@ -83,7 +83,7 @@ public class CustomerService : ICustomerService
         var existingCustomer = await _repository.GetCustomerById(id);
 
         if (existingCustomer is null)
-            throw new NotFoundException($"Customer with {id} was not found.");
+            throw new NotFoundException($"Customer with id: {id} was not found.");
 
         var customer = _mapper.Map<Customer, CustomerResponse>(existingCustomer);
         return Result<CustomerResponse>.Ok(customer);

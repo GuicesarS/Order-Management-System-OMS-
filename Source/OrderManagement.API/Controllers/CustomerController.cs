@@ -59,7 +59,7 @@ public class CustomerController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<CustomerResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllCustomers()
     {
         var result = await _customerService.GetAll();
