@@ -1,4 +1,5 @@
 ﻿using OrderManagement.Domain.Enums;
+using OrderManagement.Domain.Exception;
 
 namespace OrderManagement.Domain.Entities.Order;
 
@@ -19,7 +20,7 @@ public class Order
     public Order(Guid customerId)
     {
         if (customerId == Guid.Empty)
-            throw new ArgumentException("CustomerId is required.");
+            throw new DomainValidationException("CustomerId is required.");
 
         Id = Guid.NewGuid();
         CustomerId = customerId;
@@ -30,9 +31,9 @@ public class Order
     public void AddItem(Guid productId, int quantity, decimal unitPrice)
     {
         if (quantity < 1)
-            throw new ArgumentException("Quantity must be at least 1.");
+            throw new DomainValidationException("Quantity must be at least 1.");
         if (unitPrice < 0)
-            throw new ArgumentException("UnitPrice must be greater or equal to 0.");
+            throw new DomainValidationException("UnitPrice must be greater or equal to 0.");
 
         var item = new OrderItem.OrderItem(Id, productId, quantity, unitPrice);
         _items.Add(item);
@@ -44,7 +45,7 @@ public class Order
     {
         var item = _items.FirstOrDefault(i => i.ProductId == productId);
         if (item is null)
-            throw new ArgumentException("Item not found in order.");
+            throw new DomainValidationException("Item not found in order.");
 
         item.UpdateQuantity(quantity);
         item.UpdateUnitPrice(unitPrice);
@@ -56,7 +57,7 @@ public class Order
     {
         var item = _items.FirstOrDefault(i => i.ProductId == productId);
         if (item is null)
-            throw new ArgumentException("Item not found in order.");
+            throw new DomainValidationException("Item not found in order.");
 
         _items.Remove(item);
 
@@ -72,7 +73,7 @@ public class Order
     public void MarkAsShipped()
     {
         if (Status != OrderStatus.Paid)
-            throw new InvalidOperationException("Only paid orders can be shipped.");
+            throw new DomainValidationException("Only paid orders can be shipped.");
         
         Status = OrderStatus.Shipped;
     }
