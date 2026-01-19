@@ -1,6 +1,9 @@
 ﻿using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
+using OrderManagement.Application.Common.Extensions;
+using OrderManagement.Application.Exceptions;
 using OrderManagement.Application.Interfaces;
+using OrderManagement.Communication.Dtos.Product;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.Product;
 using OrderManagement.Domain.Interfaces;
@@ -18,25 +21,35 @@ public class ProductService : IProductService
         _mapper = mapper;
     }
 
-    public async Task<Result<ProductResponse>> Create(Product product)
+    public async Task<Result<ProductResponse>> Create(CreateProductDto productDto)
     {
+        var product = new Product(
+            productDto.Name, 
+            productDto.Sku, 
+            productDto.Price, 
+            productDto.StockQuantity,
+            productDto.IsActive);
+
         await _repository.AddAsync(product);
 
         var response = _mapper.Map<Product,ProductResponse>(product);
         return Result<ProductResponse>.Ok(response);
     }
-    public async Task<Result<ProductResponse>> Update(Guid id, Product product)
+    public async Task<Result<ProductResponse>> Update(Guid id, UpdateProductDto productDto)
     {
         var existingProduct = await _repository.GetProductById(id);
 
         if(existingProduct is null)
-            return Result<ProductResponse>.Failure("Product not found.");
+            throw new NotFoundException($"Product with id: {id} was not found.");
+
+        var productName = productDto.Name.GetValueForUpdate();
+        var productSku = productDto.Sku.GetValueForUpdate();
 
         existingProduct.ApplyChanges(
-            product.Name, 
-            product.Sku, 
-            product.Price, 
-            product.StockQuantity);
+            productName,
+            productSku,
+            productDto.Price,
+            productDto.StockQuantity);
 
         await _repository.UpdateAsync(existingProduct);
 
@@ -49,7 +62,7 @@ public class ProductService : IProductService
         var product = await _repository.GetProductById(id);
 
         if (product is null)
-            return Result<bool>.Failure("Product not found.");
+            throw new NotFoundException($"Product with id: {id} was not found.");
 
         await  _repository.DeleteAsync(id);
 

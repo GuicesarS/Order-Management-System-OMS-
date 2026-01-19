@@ -1,4 +1,6 @@
-﻿namespace OrderManagement.Domain.Entities.Product;
+﻿using OrderManagement.Domain.Exception;
+
+namespace OrderManagement.Domain.Entities.Product;
 
 public class Product
 {
@@ -13,14 +15,14 @@ public class Product
 
     public Product(string name, string sku, decimal price, int stockQuantity, bool isActive)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name is required.");
-        if (string.IsNullOrWhiteSpace(sku))
-            throw new ArgumentException("Sku is required.");
-        if (price < 0)
-            throw new ArgumentException("Price must be greater or equal to 0.");
-        if (stockQuantity < 0)
-            throw new ArgumentException("StockQuantity must be greater or equal to 0.");
+        ValidateRequired(name, nameof(Name));
+        ValidateRequired(sku, nameof(Sku));
+       
+        if (price <= 0)
+            throw new ArgumentException("Price must be greater than 0.");
+
+        if (stockQuantity <= 0)
+            throw new ArgumentException("StockQuantity must be greater than 0.");
 
         Id = Guid.NewGuid();
         Name = name;
@@ -31,6 +33,14 @@ public class Product
         CreatedAt = DateTime.UtcNow;
     }
 
+    private static void ValidateRequired(string value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new DomainValidationException($"{fieldName} cannot be null or empty.");
+
+        if (value.Equals("string", StringComparison.OrdinalIgnoreCase))
+            throw new DomainValidationException($"{fieldName} format is invalid.");
+    }
     public void ApplyChanges(string? name, string? sku, decimal? price, int? stockQuantity)
     {
         if (name is not null) UpdateName(name);
@@ -41,29 +51,29 @@ public class Product
 
     public void UpdateName(string name)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Name is required.");
+        ValidateRequired(name, nameof(Name));
         Name = name;
     }
 
     public void UpdateSku(string sku)
     {
-        if (string.IsNullOrWhiteSpace(sku))
-            throw new ArgumentException("Sku is required.");
+       ValidateRequired(sku, nameof(Sku));
         Sku = sku;
     }
 
     public void UpdatePrice(decimal price)
     {
-        if (price < 0)
-            throw new ArgumentException("Price must be greater or equal to 0.");
+        if (price <= 0)
+            throw new DomainValidationException("Price must be greater than 0.");
+
         Price = price;
     }
 
     public void UpdateStockQuantity(int stockQuantity)
     {
-        if (stockQuantity < 0)
-            throw new ArgumentException("StockQuantity must be greater or equal to 0.");
+        if (stockQuantity <= 0)
+            throw new DomainValidationException("StockQuantity must be greater than 0.");
+
         StockQuantity = stockQuantity;
     }
 }
