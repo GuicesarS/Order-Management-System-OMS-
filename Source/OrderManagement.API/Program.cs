@@ -24,6 +24,7 @@ builder.Services.AddEndpointsApiExplorer();
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Debug()
+    .Enrich.FromLogContext() 
     .WriteTo.Console()
     .WriteTo.File("logs/ordermanagementapi-.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
