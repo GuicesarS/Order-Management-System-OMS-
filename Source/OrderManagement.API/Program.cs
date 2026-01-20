@@ -7,6 +7,7 @@ using OrderManagement.Application;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Infrastructure;
 using OrderManagement.Infrastructure.Data;
+using Serilog;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +20,13 @@ ExpressMappingConfig.RegisterMappings();
 // Add OpenAPI/Swagger services
 builder.Services.AddSwaggerGen();
 builder.Services.AddEndpointsApiExplorer();
+
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console()
+    .WriteTo.File("logs/ordermanagementapi-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 // Add Custom Mapper service
 builder.Services.AddScoped<ICustomMapper, CustomMapper>();
@@ -40,6 +48,8 @@ builder.Services.AddInfrastructure();
 // Database configuration
 builder.Services.AddDbContext<OrderManagementDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Host.UseSerilog();
 
 var app = builder.Build();
 
