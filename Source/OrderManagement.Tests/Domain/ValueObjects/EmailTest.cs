@@ -27,14 +27,17 @@ public class EmailTest
             .WithMessage("Email is required.");
     }
 
-    [Fact]
-    public void Create_ShouldThrowException_WhenEmailFormatIsInvalid()
+    [Theory]
+    [InlineData("")]
+    [InlineData("abc")]
+    [InlineData("invalid-email")]
+    public void Create_ShouldThrowException_WhenEmailFormatIsInvalid(string value)
     {
-        
-        Action act = () => Email.Create("xxxx");
+        Action act = () => Email.Create(value);
 
         act.Should()
-           .Throw<DomainValidationException>()
-           .WithMessage("*invalid*");
+            .Throw<DomainValidationException>()
+            .WithMessage("*Email*");
     }
+
 }
