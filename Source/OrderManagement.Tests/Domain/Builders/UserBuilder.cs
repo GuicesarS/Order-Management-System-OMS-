@@ -3,7 +3,7 @@ using OrderManagement.Domain.Entities.User;
 using OrderManagement.Domain.Enums;
 using OrderManagement.Domain.ValueObjects;
 
-namespace OrderManagement.Tests.Domain.DomainBuilders;
+namespace OrderManagement.Tests.Domain.Builders;
 
 public class UserBuilder
 {

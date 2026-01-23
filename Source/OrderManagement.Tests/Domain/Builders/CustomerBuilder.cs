@@ -2,7 +2,7 @@
 using OrderManagement.Domain.Entities.Customer;
 using OrderManagement.Domain.ValueObjects;
 
-namespace OrderManagement.Tests.Domain.DomainBuilders;
+namespace OrderManagement.Tests.Domain.Builders;
 
 public class CustomerBuilder
 {
