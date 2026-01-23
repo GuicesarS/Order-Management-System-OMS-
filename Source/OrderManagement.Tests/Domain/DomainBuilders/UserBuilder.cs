@@ -2,29 +2,33 @@
 using OrderManagement.Domain.Entities.User;
 using OrderManagement.Domain.Enums;
 using OrderManagement.Domain.ValueObjects;
-using System.Security.Cryptography.X509Certificates;
 
 namespace OrderManagement.Tests.Domain.DomainBuilders;
 
 public class UserBuilder
 {
-    private readonly Faker<User> _faker;
+    private readonly Faker _faker;
+
+    private string _validName;
+    private Email _validEmail;
+    private UserRole _userRole;
     public UserBuilder()
     {
-        _faker = new Faker<User>()
-             .CustomInstantiator(f => 
-             new User(f.Person.FirstName,Email.Create(f.Internet.Email()), f.PickRandom<UserRole>()
-             ));
+        _faker = new Faker("pt_BR");
 
+        _validName = _faker.Person.FullName;
+        _validEmail = Email.Create(_faker.Internet.Email());
+        _userRole = _faker.PickRandom<UserRole>();
     }
 
-    public User Build() => _faker.Generate();
+    public User Build() => 
+        new User(_validName, _validEmail, _userRole);
     public User BuildInvalidUserWithEmptyName() => 
-        new User("", Email.Create("teste@gmail.com"), UserRole.Admin);
+        new User("", _validEmail, _userRole);
     public User BuildInvalidUserWithNullEmail()
-        => new User("Guilherme", null!, UserRole.Admin);
-    public User BuildInvalidUserWithInvalidRole()
-        => new User("Guilherme", Email.Create("teste@email.com"), (UserRole)999);
+        => new User(_validName, null!, _userRole);
+    public User BuildWithInvalidRole()
+        => new User(_validName, _validEmail, (UserRole)999);
 
 
 

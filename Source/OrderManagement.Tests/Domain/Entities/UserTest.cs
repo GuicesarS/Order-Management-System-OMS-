@@ -50,7 +50,7 @@ public class UserTest
     {
         var user = new UserBuilder();
 
-        Action act = () => user.BuildInvalidUserWithInvalidRole();
+        Action act = () => user.BuildWithInvalidRole();
 
         act.Should()
             .Throw<DomainValidationException>();
