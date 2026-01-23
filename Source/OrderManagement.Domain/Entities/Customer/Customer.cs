@@ -7,16 +7,21 @@ public class Customer
     public Guid Id { get; private set; }
     public string Name { get; private set; }
     public Email Email { get; private set; }
-    public string Phone { get; private set; }
+    public Phone Phone { get; private set; }
     public string Address { get; private set; }
     public DateTime CreatedAt { get; private set; }
 
     protected Customer() { } // Ef Core
 
-    public Customer(string name, Email email, string phone, string address)
+    public Customer(string name, Email email, Phone phone, string address)
     {
+        if (email is null)
+            throw new DomainValidationException("Email is required.");
+
+        if(phone is null)
+            throw new DomainValidationException("Phone is required.");
+
         ValidateRequired(name, nameof(Name));
-        ValidateRequired(phone, nameof(Phone));
         ValidateRequired(address, nameof(Address));
 
         Id = Guid.NewGuid();
@@ -35,7 +40,7 @@ public class Customer
         if (value.Equals("string", StringComparison.OrdinalIgnoreCase))
             throw new DomainValidationException($"{fieldName} format is invalid.");
     }
-    public void UpdateCustomerProfile(string? name, Email? email, string? phone, string? address)
+    public void UpdateCustomerProfile(string? name, Email? email,Phone? phone, string? address)
     {
         if(name is not null) UpdateName(name);
         if(email is not null) UpdateEmail(email);
@@ -50,12 +55,7 @@ public class Customer
         Name = name;
     }
     public void UpdateEmail(Email email) => Email = email ?? throw new DomainValidationException(nameof(email));
-    public void UpdatePhone(string phone)
-    {
-        ValidateRequired(phone, nameof(Phone));
-
-        Phone = phone;
-    }
+    public void UpdatePhone(Phone phone) => Phone = phone ?? throw new DomainValidationException(nameof(phone));
     public void UpdateAddress(string address)
     {
         ValidateRequired(address, nameof(Address));

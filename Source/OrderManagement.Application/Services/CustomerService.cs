@@ -32,7 +32,7 @@ public class CustomerService : ICustomerService
         var customer = new Customer(
             customerDto.Name,
             Email.Create(customerDto.Email),
-            customerDto.Phone,
+            Phone.Create(customerDto.Phone),
             customerDto.Address);
 
         await _repository.AddAsync(customer);
@@ -63,7 +63,7 @@ public class CustomerService : ICustomerService
         existingCustomer.UpdateCustomerProfile(
             nameForUpdate,
             emailForUpdate is null ? null : Email.Create(emailForUpdate),
-            phoneForUpdate,
+            phoneForUpdate is null ? null : Phone.Create(phoneForUpdate),
             addressForUpdate);
 
         await _repository.UpdateAsync(existingCustomer);
