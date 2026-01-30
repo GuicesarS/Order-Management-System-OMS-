@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
 using OrderManagement.Domain.Exception;
 using OrderManagement.Domain.ValueObjects;
-using OrderManagement.Tests.Domain.DomainBuilders;
+using OrderManagement.Tests.Domain.Builders;
 
 namespace OrderManagement.Tests.Domain.Entities;
 
