@@ -60,6 +60,14 @@ public class OrderManagementDbContext : DbContext
                      .HasMaxLength(255)
                      .IsRequired();
             });
+
+            builder.OwnsOne(c => c.Phone, phone =>
+            {
+                phone.Property(p => p.Value)
+                     .HasColumnName("Phone")
+                     .HasMaxLength(20)
+                     .IsRequired();
+            });
         });
 
         
