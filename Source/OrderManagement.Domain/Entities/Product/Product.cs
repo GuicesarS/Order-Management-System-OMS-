@@ -19,10 +19,10 @@ public class Product
         ValidateRequired(sku, nameof(Sku));
        
         if (price <= 0)
-            throw new ArgumentException("Price must be greater than 0.");
+            throw new DomainValidationException("Price must be greater than 0.");
 
         if (stockQuantity <= 0)
-            throw new ArgumentException("StockQuantity must be greater than 0.");
+            throw new DomainValidationException("StockQuantity must be greater than 0.");
 
         Id = Guid.NewGuid();
         Name = name;
