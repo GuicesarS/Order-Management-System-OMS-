@@ -1,4 +1,6 @@
-﻿namespace OrderManagement.Domain.Entities.OrderItem;
+﻿using OrderManagement.Domain.Exception;
+
+namespace OrderManagement.Domain.Entities.OrderItem;
 
 public class OrderItem
 {
@@ -14,30 +16,40 @@ public class OrderItem
     public OrderItem(Guid orderId, Guid productId, int quantity, decimal unitPrice)
     {
         if (quantity < 1)
-            throw new ArgumentException("Quantity must be at least 1.");
-        if (unitPrice < 0)
-            throw new ArgumentException("UnitPrice must be greater or equal to 0.");
+            throw new DomainValidationException("Quantity must be at least 1.");
+        if (unitPrice < 1)
+            throw new DomainValidationException("UnitPrice must be greater than 0.");
 
         Id = Guid.NewGuid();
         OrderId = orderId;
         ProductId = productId;
         Quantity = quantity;
         UnitPrice = unitPrice;
-        LineTotal = quantity * unitPrice;
+
+        RecalculateLineTotal();
     }
 
     public void UpdateQuantity(int quantity)
     {
         if (quantity < 1)
-            throw new ArgumentException("Quantity must be at least 1.");
+            throw new DomainValidationException("Quantity must be at least 1.");
         Quantity = quantity;
+
+        RecalculateLineTotal();
     }
 
     public void UpdateUnitPrice(decimal unitPrice)
     {
-        if (unitPrice < 0)
-            throw new ArgumentException("UnitPrice must be greater or equal to 0.");
+        if (unitPrice <= 0)
+            throw new DomainValidationException("UnitPrice must be greater than 0.");
         UnitPrice = unitPrice;
+
+        RecalculateLineTotal();
+    }
+
+    private void RecalculateLineTotal()
+    {
+        LineTotal = Quantity * UnitPrice;
     }
 
 
