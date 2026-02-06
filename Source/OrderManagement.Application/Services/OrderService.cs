@@ -225,6 +225,8 @@ public class OrderService : IOrderService
     {
         switch (status)
         {
+            case OrderStatus.Pending:
+                throw new DomainValidationException("Cannot change order back to Pending status.");
             case OrderStatus.Paid:
                 order.MarkAsPaid();
                 break;
