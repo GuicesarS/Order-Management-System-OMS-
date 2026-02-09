@@ -12,7 +12,7 @@ using OrderManagement.Domain.Entities.Product;
 using OrderManagement.Domain.Entities.User;
 using OrderManagement.Domain.ValueObjects;
 
-namespace OrderManagement.API.Configurations;
+namespace OrderManagement.API.Configurations.Mapping;
 
 public static class ExpressMappingConfig
 {

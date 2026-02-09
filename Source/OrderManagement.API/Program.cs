@@ -1,7 +1,9 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
-using OrderManagement.API.Configurations;
+using OrderManagement.API.Configurations.Authentication;
+using OrderManagement.API.Configurations.Mapping;
+using OrderManagement.API.Configurations.Swagger;
 using OrderManagement.API.Handlers;
 using OrderManagement.Application;
 using OrderManagement.Application.Common.CustomMapping;
@@ -16,10 +18,6 @@ ExpressMappingConfig.RegisterMappings();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-
-// Add OpenAPI/Swagger services
-builder.Services.AddSwaggerGen();
-builder.Services.AddEndpointsApiExplorer();
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -44,7 +42,13 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Application & Infrastructure services
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure();       
+builder.Services.AddInfrastructure(builder.Configuration);
+
+// JWT
+builder.Services.AddJwtAuthentication(builder.Configuration);
+
+// Swagger com JWT
+builder.Services.AddSwaggerWithJwt();
 
 // Database configuration
 builder.Services.AddDbContext<OrderManagementDbContext>(options =>
@@ -66,6 +70,9 @@ app.UseHttpsRedirection();
 app.UseExceptionHandler();
 
 app.MapControllers();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Run();
 
