@@ -27,6 +27,10 @@ public class OrderManagementDbContext : DbContext
                    .HasMaxLength(200)
                    .IsRequired();
 
+            builder.Property(u => u.PasswordHash)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
             builder.Property(u => u.CreatedAt)
                    .IsRequired();
 
