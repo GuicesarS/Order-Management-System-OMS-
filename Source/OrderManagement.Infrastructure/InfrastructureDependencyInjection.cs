@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OrderManagement.Domain.Interfaces;
+using OrderManagement.Domain.Security.Cryptography;
 using OrderManagement.Domain.Security.Token;
 using OrderManagement.Infrastructure.Repositories;
+using OrderManagement.Infrastructure.Security.Cryptography;
 using OrderManagement.Infrastructure.Security.Token;
 
 namespace OrderManagement.Infrastructure;
@@ -15,6 +17,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<ICustomerRepository, CustomerRepository>();  
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
 
         AddTokens(services, configuration);
 

@@ -9,12 +9,13 @@ public class User
     public Guid Id { get; private set; }
     public string Name { get; private set; }
     public Email Email { get; private set; }
+    public string PasswordHash { get; private set; }
     public DateTime CreatedAt{ get; private set; }
     public UserRole Role { get; private set; }
 
     protected User() { } // Ef Core
 
-    public User(string name, Email email, UserRole role)
+    public User(string name, Email email, string passwordHash, UserRole role)
     {
 
         if (string.IsNullOrWhiteSpace(name))
@@ -22,6 +23,9 @@ public class User
 
         if (email is null)
             throw new DomainValidationException("Email cannot be null.");
+
+        if (string.IsNullOrWhiteSpace(passwordHash))
+            throw new DomainValidationException("Password hash cannot be empty.");
 
         if (!Enum.IsDefined(typeof(UserRole), role))
             throw new DomainValidationException(
@@ -33,11 +37,12 @@ public class User
         Id = Guid.NewGuid();
         Name = name;
         Email = email;
+        PasswordHash = passwordHash;
         CreatedAt = DateTime.UtcNow;
         Role = role;
     }
 
-    public void UpdateUser(string name, Email email, UserRole role)
+    public void UpdateUser(string name, Email email, string passwordHash, UserRole role)
     {
         UpdateName(name);
         UpdateEmail(email);
@@ -57,6 +62,14 @@ public class User
         Email = email ?? throw new DomainValidationException(nameof(email));
     }
 
+    public void ChangePassword(string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword))
+            throw new DomainValidationException("Password hash cannot be empty.");
+
+        PasswordHash = newPassword;
+    }
+
     public void UpdateRole(UserRole role)
     {
         if (!Enum.IsDefined(typeof(UserRole), role))
@@ -68,6 +81,6 @@ public class User
 
         Role = role;
     }
-    
+
 
 }

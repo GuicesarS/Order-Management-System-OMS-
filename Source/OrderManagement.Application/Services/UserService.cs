@@ -1,13 +1,14 @@
-﻿using OrderManagement.Application.Common;
+﻿using Microsoft.Extensions.Logging;
+using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
-using Microsoft.Extensions.Logging;
 using OrderManagement.Application.Interfaces;
 using OrderManagement.Communication.Dtos.User;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.User;
 using OrderManagement.Domain.Enums;
 using OrderManagement.Domain.Interfaces;
+using OrderManagement.Domain.Security.Cryptography;
 using OrderManagement.Domain.ValueObjects;
 
 namespace OrderManagement.Application.Services;
@@ -17,21 +18,30 @@ public class UserService : IUserService
     private readonly IUserRepository _repository;
     private readonly ICustomMapper _mapper;
     private readonly ILogger<UserService> _logger;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public UserService(IUserRepository repository, ICustomMapper mapper, ILogger<UserService> logger)
+    public UserService(
+        IUserRepository repository, 
+        ICustomMapper mapper, 
+        ILogger<UserService> logger, 
+        IPasswordHasher passwordHasher)
     {
         _repository = repository;
         _mapper = mapper;
         _logger = logger;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<Result<UserResponse>> Create(CreateUserDto userDto)
     {
         _logger.LogInformation("Creating a new user with email: {Email}", userDto.Email);
 
+        var passwordHash = _passwordHasher.Hash(userDto.Password);
+
         var user = new User(
             userDto.Name,
             Email.Create(userDto.Email),
+            passwordHash,
             Enum.Parse<UserRole>(userDto.Role)
         );
 
@@ -54,13 +64,28 @@ public class UserService : IUserService
             _logger.LogWarning("User {UserId} not found for update", id);
             throw new NotFoundException($"User with {id} was not found.");
         }
-       
-        existingUser.UpdateUser(
-            updatedUser.Name,
-            Email.Create(updatedUser.Email),
-            Enum.Parse<UserRole>(updatedUser.Role, ignoreCase: true)
-        );
-       
+
+        if (!string.IsNullOrWhiteSpace(updatedUser.Name))
+            existingUser.UpdateName(updatedUser.Name);
+
+        if (!string.IsNullOrWhiteSpace(updatedUser.Email))
+            existingUser.UpdateEmail(Email.Create(updatedUser.Email));
+
+        if (!string.IsNullOrWhiteSpace(updatedUser.Password))
+        {
+            var newHash = _passwordHasher.Hash(updatedUser.Password);
+            existingUser.ChangePassword(newHash);
+        }
+           
+
+        if (!string.IsNullOrWhiteSpace(updatedUser.Role))
+        {
+            if (!Enum.TryParse<UserRole>(updatedUser.Role, true, out var role))
+                throw new ValidationException("Invalid role.");
+
+            existingUser.UpdateRole(role);
+        }
+
         await _repository.UpdateAsync(existingUser);
 
         _logger.LogInformation("User {UserId} updated successfully", id);

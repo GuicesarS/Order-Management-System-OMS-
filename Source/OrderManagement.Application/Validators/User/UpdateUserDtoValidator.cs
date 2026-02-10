@@ -15,9 +15,15 @@ public class UpdateUserDtoValidator : AbstractValidator<UpdateUserDto>
             .EmailAddress().WithMessage("Invalid email format.")
             .When(x => !string.IsNullOrEmpty(x.Email));
 
+        RuleFor(x => x.Password)
+            .Must(p => !string.IsNullOrWhiteSpace(p))
+            .WithMessage("Password cannot be empty.")
+            .MaximumLength(100)
+            .When(x => x.Password is not null);
+
         RuleFor(x => x.Role)
-            .NotEmpty().WithMessage("Role cannot be empty.")
-            .When(x => x.Role != null);
+           .NotEmpty().WithMessage("Role cannot be empty.")
+           .When(x => x.Role != null);
 
     }
 }
