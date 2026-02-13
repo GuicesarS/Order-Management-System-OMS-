@@ -46,6 +46,7 @@ public class User
     {
         UpdateName(name);
         UpdateEmail(email);
+        ChangePassword(passwordHash);
         UpdateRole(role);
     }
 
@@ -59,7 +60,10 @@ public class User
 
     public void UpdateEmail(Email email)
     {
-        Email = email ?? throw new DomainValidationException(nameof(email));
+        if (email is null)
+            throw new DomainValidationException("Email cannot be null.");
+
+        Email = email;
     }
 
     public void ChangePassword(string newPassword)

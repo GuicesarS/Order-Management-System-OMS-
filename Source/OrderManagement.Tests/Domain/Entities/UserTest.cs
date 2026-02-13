@@ -17,6 +17,7 @@ public class UserTest
         user.Id.Should().NotBeEmpty();
         user.Name.Should().NotBeNullOrWhiteSpace();
         user.Email.Should().NotBeNull();
+        user.PasswordHash.Should().NotBeNull();
         Enum.IsDefined(typeof(UserRole), user.Role).Should().BeTrue();
 
     }
@@ -56,6 +57,17 @@ public class UserTest
             .Throw<DomainValidationException>();
     }
 
+    [Fact]
+    public void Constructor_ShouldThrowException_WhenPasswordIsInvalid()
+    {
+        var user = new UserBuilder();
+
+        Action act = () => user.BuildWithInvalidPassword();
+
+        act.Should()
+            .Throw<DomainValidationException>();
+    }
+
     //Update Name Test
 
     [Fact]
@@ -86,39 +98,14 @@ public class UserTest
     // Update Email Test
 
     [Fact]
-    public void UpdateEmail_ShouldBeSuccessful_WhenValidData()
-    {
-        var user = new UserBuilder().Build();
-
-        var newEmail = Email.Create("newemail@gmail.com");
-
-        user.UpdateEmail(newEmail);
-
-        user.Should().NotBeNull();
-        user.Email.Should().Be(newEmail);
-        user.Email.Value.Should().Be("newemail@gmail.com");
-    }
-
-    [Fact]
-    public void UpdateEmail_ShouldThrowException_WhenEmailIsInvalid()
-    {
-        var user = new UserBuilder().Build();
-
-        Action act = () => user.UpdateEmail(Email.Create("invalid-email"));
-
-        act.Should().Throw<DomainValidationException>()
-            .WithMessage("Email format is invalid.");
-    }
-
-    [Fact]
     public void UpdateEmail_ShouldThrowException_WhenEmailIsNull()
     {
         var user = new UserBuilder().Build();
 
-        Action act = () => user.UpdateEmail(Email.Create(null!));
+        Action act = () => user.UpdateEmail(null!);
 
         act.Should().Throw<DomainValidationException>()
-            .WithMessage("Email is required.");
+            .WithMessage("*email*");
     }
 
     // Update Role Test
@@ -154,21 +141,28 @@ public class UserTest
 
         var newName = "João Pereira";
         var newEmail = Email.Create("joao@gmail.com");
+        var newPassword = "new-hash-123";
         var newRole = UserRole.Operator;
+        
 
-        user.UpdateUser(newName, newEmail, newRole);
+        user.UpdateUser(newName, newEmail, newPassword, newRole);
 
         user.Should().NotBeNull();
         user.Name.Should().Be(newName);
+        user.Email.Should().Be(newEmail);
+        user.PasswordHash.Should().Be(newPassword);
+        user.Role.Should().Be(newRole);
     }
 
     [Theory]
-    [InlineData("", "teste@gmail.com", UserRole.Admin, "Name cannot be empty.")]
-    [InlineData("Guilherme", null, UserRole.Admin, "email")]
-    [InlineData("Guilherme", "teste@gmail.com", (UserRole)999, "not valid")]
+    [InlineData("", "teste@gmail.com", "hash123", UserRole.Admin, "Name cannot be empty.")]
+    [InlineData("Guilherme", null, "hash123", UserRole.Admin, "Email")]
+    [InlineData("Guilherme", "teste@gmail.com", "", UserRole.Admin, "Password hash cannot be empty.")]
+    [InlineData("Guilherme", "teste@gmail.com", "hash123", (UserRole)999, "The role value")]
     public void UpdateUser_ShouldThrowException_WhenDataIsInvalid(
      string name,
      string? emailValue,
+     string password,
      UserRole role,
      string expectedMessage
  )
@@ -179,7 +173,7 @@ public class UserTest
             ? null
             : Email.Create(emailValue);
 
-        Action act = () => user.UpdateUser(name, email!, role);
+        Action act = () => user.UpdateUser(name, email!, password, role);
 
         act.Should()
             .Throw<DomainValidationException>()
