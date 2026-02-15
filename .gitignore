@@ -482,3 +482,17 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Coverage and test results
+coverage/
+coverage-html/
+TestResults/
+*.opencover.xml
+*.cobertura.xml
+*.lcov
+coverage.json
+code-coverage-results.md
+
+# Build results
+[Bb]in/
+[Oo]bj/
