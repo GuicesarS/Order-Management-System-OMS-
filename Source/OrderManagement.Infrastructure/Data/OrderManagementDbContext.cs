@@ -108,7 +108,6 @@ public class OrderManagementDbContext : DbContext
                    .WithOne()
                    .HasForeignKey(i => i.OrderId)
                    .OnDelete(DeleteBehavior.Cascade);
-            ;
         });
 
        
@@ -128,7 +127,6 @@ public class OrderManagementDbContext : DbContext
                    .WithMany()
                    .HasForeignKey(i => i.ProductId)
                    .OnDelete(DeleteBehavior.Restrict);
-            ;
         });
     }
 }

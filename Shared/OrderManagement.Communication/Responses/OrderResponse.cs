@@ -8,6 +8,5 @@ public class OrderResponse
     public decimal TotalAmount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? PaidAt { get; set; }
-
-    public List<OrderItemResponse> Items = new();
+    public List<OrderItemResponse> Items { get; set; } = [];
 }

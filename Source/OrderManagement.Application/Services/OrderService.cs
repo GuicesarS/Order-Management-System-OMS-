@@ -259,10 +259,10 @@ public class OrderService : IOrderService
             var quantity = item.Quantity ?? existingItem.Quantity;
 
             if (item.Quantity.HasValue)
-                existingItem.UpdateQuantity(item.Quantity.Value);
+                existingItem.UpdateQuantity(quantity);
 
             if (item.UnitPrice.HasValue)
-                existingItem.UpdateUnitPrice(item.UnitPrice.Value);
+                existingItem.UpdateUnitPrice(unitPrice);
         }
     }
 }
