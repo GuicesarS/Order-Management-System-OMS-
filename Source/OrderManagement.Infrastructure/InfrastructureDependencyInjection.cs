@@ -28,7 +28,8 @@ public static class InfrastructureDependencyInjection
     {
         var expirationTimeInMinutes = configuration.GetValue<int>("Settings:Jwt:ExpirationTimeMinutes");
 
-        var signingKey = configuration.GetValue<string>("Settings:Jwt:SigningKey");
+        var signingKey = configuration.GetValue<string>("Settings:Jwt:SigningKey")
+            ?? throw new InvalidOperationException("Signing key for JWT is not configured.");
 
         services.AddScoped<IAccessTokenGenerator>(provider =>
             new AccessTokenGenerator(expirationTimeInMinutes, signingKey));

@@ -5,10 +5,10 @@ namespace OrderManagement.Domain.Entities.Customer;
 public class Customer
 {
     public Guid Id { get; private set; }
-    public string Name { get; private set; }
-    public Email Email { get; private set; }
-    public Phone Phone { get; private set; }
-    public string Address { get; private set; }
+    public string Name { get; private set; } = null!;
+    public Email Email { get; private set; } = null!;
+    public Phone Phone { get; private set; } = null!;
+    public string Address { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
 
     protected Customer() { } // Ef Core

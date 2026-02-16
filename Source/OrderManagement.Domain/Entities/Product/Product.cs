@@ -5,9 +5,9 @@ namespace OrderManagement.Domain.Entities.Product;
 public class Product
 {
     public Guid Id { get; private set; }
-    public string Name { get; private set; }
-    public string Sku { get; private set; }
-    public decimal Price { get; private set; }
+    public string Name { get; private set; } = null!;
+    public string Sku { get; private set; } = null!;
+    public decimal Price { get; private set; } 
     public int StockQuantity { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }

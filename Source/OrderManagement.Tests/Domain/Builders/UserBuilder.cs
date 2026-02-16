@@ -28,7 +28,7 @@ public class UserBuilder
     public User BuildInvalidUserWithEmptyName() => 
         new User("", _validEmail, _password, _userRole);
     public User BuildInvalidUserWithNullEmail()
-        => new User(_validName, null, _password, _userRole);
+        => new User(_validName, null!, _password, _userRole);
     public User BuildWithInvalidRole()
         => new User(_validName, _validEmail, _password, (UserRole)999);
     public User BuildWithInvalidPassword()

@@ -64,7 +64,7 @@ public class AuthServiceTest
         result.Should().NotBeNull();
         result.Success.Should().BeTrue();
         result.Data.Should().NotBeNull();
-        result.Data.AccessToken.Should().Be("fake-jwt-token");
+        result.Data!.AccessToken.Should().Be("fake-jwt-token");
 
         _accessTokenMock.Verify(x => x.Generate(user), Times.Once);
     }

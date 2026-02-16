@@ -81,7 +81,7 @@ public class Order
         if (Status == OrderStatus.Paid)
             throw new DomainValidationException("Order is already paid.");
 
-        if (!_items.Any())
+        if (_items.Count == 0)
             throw new DomainValidationException("Cannot pay an order without items.");
 
         Status = OrderStatus.Paid;
@@ -103,7 +103,7 @@ public class Order
         if (Status != OrderStatus.Paid)
             throw new DomainValidationException("Only paid orders can be shipped.");
 
-        if (!_items.Any())
+        if (_items.Count == 0)
             throw new DomainValidationException("Cannot ship an order without items.");
 
         Status = OrderStatus.Shipped;

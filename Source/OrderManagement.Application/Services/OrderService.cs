@@ -84,7 +84,8 @@ public class OrderService : IOrderService
 
         await ValidateCustomerExists(customer);
 
-        await ValidateProducts(updateOrderDto.Items);
+        if (updateOrderDto.Items is not null)
+         await ValidateProducts(updateOrderDto.Items);
 
         var existingOrder = await GetExistingOrder(id);
 
@@ -191,12 +192,6 @@ public class OrderService : IOrderService
     }
     private async Task ValidateProducts(IEnumerable<UpdateOrderItemDto> itemsDto)
     {
-        if (itemsDto is null)
-        {
-            _logger.LogInformation("No order items to validate.");
-            return;
-        }
-
         foreach (var item in itemsDto)
         {
             _logger.LogInformation("Validating product {ProductId} for order update.", item.ProductId);
@@ -244,7 +239,7 @@ public class OrderService : IOrderService
             ApplyStatus(order, status);
         }
     }
-    private void UpdateOrderItems(UpdateOrderDto dto, Order order)
+    private static void UpdateOrderItems(UpdateOrderDto dto, Order order)
     {
         if (dto.Items is null)
             return;

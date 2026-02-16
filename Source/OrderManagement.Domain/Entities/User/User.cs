@@ -7,9 +7,9 @@ namespace OrderManagement.Domain.Entities.User;
 public class User
 {
     public Guid Id { get; private set; }
-    public string Name { get; private set; }
-    public Email Email { get; private set; }
-    public string PasswordHash { get; private set; }
+    public string Name { get; private set; } = null!;
+    public Email Email { get; private set; } = null!;
+    public string PasswordHash { get; private set; } = null!;
     public DateTime CreatedAt{ get; private set; }
     public UserRole Role { get; private set; }
 

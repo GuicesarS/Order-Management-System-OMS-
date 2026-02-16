@@ -92,7 +92,7 @@ public class ProductTest
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
-    public void UpdateName_ShouldThrowException_WhenNameIsInvalid(string name)
+    public void UpdateName_ShouldThrowException_WhenNameIsInvalid(string? name)
     {
        var product = new ProductBuilder().Build();
 
@@ -130,7 +130,7 @@ public class ProductTest
     [InlineData(null)]
     [InlineData("")]
     [InlineData(" ")]
-    public void UpdateSku_ShouldThrowException_WhenSkuIsInvalid(string sku)
+    public void UpdateSku_ShouldThrowException_WhenSkuIsInvalid(string? sku)
     {
         var product = new ProductBuilder().Build();
 

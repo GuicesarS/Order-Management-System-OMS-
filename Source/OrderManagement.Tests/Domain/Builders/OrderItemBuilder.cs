@@ -1,7 +1,8 @@
 ﻿using Bogus;
 using OrderManagement.Domain.Entities.OrderItem;
 using OrderManagement.Domain.Exception;
-using System;
+
+namespace OrderManagement.Tests.Domain.Builders;
 
 public class OrderItemBuilder
 {

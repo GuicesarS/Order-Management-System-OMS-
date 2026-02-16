@@ -8,7 +8,8 @@ public static class AuthenticationConfiguration
 {
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        var signingKey = configuration["Settings:Jwt:SigningKey"];
+        var signingKey = configuration["Settings:Jwt:SigningKey"] 
+            ?? throw new InvalidOperationException("JWT signing key is not configured.");
 
         services.AddAuthentication(options =>
             {

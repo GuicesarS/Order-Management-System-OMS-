@@ -22,7 +22,7 @@ public class OrderBuilder
 
     public Order Build() => new Order(_customerId);
 
-    public Order BuildWithEmptyCustomerId() => new Order(Guid.Empty);
+    public static Order BuildWithEmptyCustomerId() => new Order(Guid.Empty);
 
     public Order BuildPaidOrder()
     {
