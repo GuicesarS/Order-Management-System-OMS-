@@ -53,7 +53,7 @@ public class UserService : IUserService
         return Result<UserResponse>.Ok(response);
 
     }
-    public async Task<Result<UserResponse>> Update(Guid id, UpdateUserDto updatedUser)
+    public async Task<Result<UserResponse>> Update(Guid id, UpdateUserDto userDto)
     {
         _logger.LogInformation("Updating user {UserId}", id);
 
@@ -65,22 +65,22 @@ public class UserService : IUserService
             throw new NotFoundException($"User with {id} was not found.");
         }
 
-        if (!string.IsNullOrWhiteSpace(updatedUser.Name))
-            existingUser.UpdateName(updatedUser.Name);
+        if (!string.IsNullOrWhiteSpace(userDto.Name))
+            existingUser.UpdateName(userDto.Name);
 
-        if (!string.IsNullOrWhiteSpace(updatedUser.Email))
-            existingUser.UpdateEmail(Email.Create(updatedUser.Email));
+        if (!string.IsNullOrWhiteSpace(userDto.Email))
+            existingUser.UpdateEmail(Email.Create(userDto.Email));
 
-        if (!string.IsNullOrWhiteSpace(updatedUser.Password))
+        if (!string.IsNullOrWhiteSpace(userDto.Password))
         {
-            var newHash = _passwordHasher.Hash(updatedUser.Password);
+            var newHash = _passwordHasher.Hash(userDto.Password);
             existingUser.ChangePassword(newHash);
         }
            
 
-        if (!string.IsNullOrWhiteSpace(updatedUser.Role))
+        if (!string.IsNullOrWhiteSpace(userDto.Role))
         {
-            if (!Enum.TryParse<UserRole>(updatedUser.Role, true, out var role))
+            if (!Enum.TryParse<UserRole>(userDto.Role, true, out var role))
                 throw new ValidationException("Invalid role.");
 
             existingUser.UpdateRole(role);

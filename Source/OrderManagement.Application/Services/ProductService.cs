@@ -42,7 +42,7 @@ public class ProductService : IProductService
         var response = _mapper.Map<Product, ProductResponse>(product);
         return Result<ProductResponse>.Ok(response);
     }
-    public async Task<Result<ProductResponse>> Update(Guid id, UpdateProductDto productDto)
+    public async Task<Result<ProductResponse>> Update(Guid id, UpdateProductDto updateProductDto)
     {
         _logger.LogInformation("Updating product with ID: {ProductId}", id);
 
@@ -54,14 +54,14 @@ public class ProductService : IProductService
             throw new NotFoundException($"Product with id: {id} was not found.");
         }
 
-        var productName = productDto.Name.GetValueForUpdate();
-        var productSku = productDto.Sku.GetValueForUpdate();
+        var productName = updateProductDto.Name.GetValueForUpdate();
+        var productSku = updateProductDto.Sku.GetValueForUpdate();
 
         existingProduct.ApplyChanges(
             productName,
             productSku,
-            productDto.Price,
-            productDto.StockQuantity);
+            updateProductDto.Price,
+            updateProductDto.StockQuantity);
 
         await _repository.UpdateAsync(existingProduct);
 
