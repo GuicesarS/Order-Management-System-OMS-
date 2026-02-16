@@ -4,6 +4,7 @@ using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
 using OrderManagement.Application.Interfaces;
 using OrderManagement.Communication.Dtos.Order;
+using OrderManagement.Communication.Dtos.OrderItem;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.Order;
 using OrderManagement.Domain.Enums;
@@ -79,96 +80,24 @@ public class OrderService : IOrderService
     {
         _logger.LogInformation("Updating order {OrderId}", id);
 
-        if (!updateOrderDto.CustomerId.HasValue)
-        {
-            _logger.LogWarning("CustomerId is required to update an order.");
-            throw new ValidationException("CustomerId is required to update an order.");
-        }
+        var customer = ValidateCustomerId(updateOrderDto);
 
-        var customer = await _customerRepository.GetCustomerById(updateOrderDto.CustomerId.Value);
+        await ValidateCustomerExists(customer);
 
-        if (customer is null)
-        {
-            _logger.LogWarning("Customer with id {CustomerId} does not exist.", updateOrderDto.CustomerId);
-            throw new ValidationException($"Customer with id {updateOrderDto.CustomerId} does not exist.");
-        }
+        await ValidateProducts(updateOrderDto.Items);
 
-        foreach (var item in updateOrderDto.Items)
-        {
-            _logger.LogInformation("Validating product {ProductId} for order update.", item.ProductId);
+        var existingOrder = await GetExistingOrder(id);
 
-            if (!item.ProductId.HasValue)
-            {
-                _logger.LogWarning("ProductId is required to update an order item.");
-                throw new ValidationException("ProductId is required to update an order item.");
-            }
+        UpdateStatusIfProvided(updateOrderDto, existingOrder);
 
-            var product = await _productRepository.GetProductById(item.ProductId.Value);
-
-            if (product is null)
-            {
-                _logger.LogWarning("Product with id {ProductId} does not exist.", item.ProductId);
-                throw new ValidationException($"Product with id {item.ProductId.Value} does not exist.");
-            }
-        }
-
-        var existingOrder = await _repository.GetOrderByIdAsync(id);
-
-        if (existingOrder is null)
-        {
-            _logger.LogWarning("Order with id {OrderId} was not found.", id);
-            throw new ValidationException($"Order with id: {id} was not found.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(updateOrderDto.Status))
-        {
-            if (!Enum.TryParse<OrderStatus>(
-                    updateOrderDto.Status,
-                    ignoreCase: true,
-                    out var status))
-            {
-                _logger.LogWarning("Invalid order status: {Status}", updateOrderDto.Status);
-                throw new ValidationException("Invalid order status");
-            }
-
-            ApplyStatus(existingOrder, status);
-        }
-
-        if (updateOrderDto.Items is not null)
-        {
-            foreach (var item in updateOrderDto.Items)
-            {
-                var existingItem = existingOrder
-                    .Items.FirstOrDefault(i => i.ProductId == item.ProductId);
-
-                if (existingItem is null)
-                {
-                    _logger.LogWarning("Product {ProductId} not found in order.", item.ProductId);
-                    throw new ValidationException($"Product {item.ProductId} not found in order.");
-                }
-
-                var unitPrice = item.UnitPrice ?? existingItem.UnitPrice;
-                var quantity = item.Quantity ?? existingItem.Quantity;
-
-                if (!item.ProductId.HasValue)
-                {
-                    _logger.LogWarning("ProductId is required to update an order item.");
-                    throw new ValidationException("ProductId is required to update an order item.");
-                }
-
-                existingOrder.UpdateItem(
-                    item.ProductId!.Value,
-                    quantity,
-                    unitPrice
-                );
-            }
-        }
+        UpdateOrderItems(updateOrderDto, existingOrder);
 
         await _repository.UpdateAsync(existingOrder);
 
         _logger.LogInformation("Order {OrderId} updated successfully.", id);
 
         var result = _mapper.Map<Order, OrderResponse>(existingOrder);
+
         return Result<OrderResponse>.Ok(result);
 
     }
@@ -221,6 +150,7 @@ public class OrderService : IOrderService
 
         return Result<OrderResponse>.Ok(orderResponse);
     }
+
     private static void ApplyStatus(Order order, OrderStatus status)
     {
         switch (status)
@@ -238,6 +168,106 @@ public class OrderService : IOrderService
                 break;
             default:
                 throw new DomainValidationException("Invalid order status.");
+        }
+    }
+    private Guid ValidateCustomerId(UpdateOrderDto updateOrderDto)
+    {
+        if (!updateOrderDto.CustomerId.HasValue)
+        {
+            _logger.LogWarning("CustomerId is required to update an order.");
+            throw new ValidationException("CustomerId is required to update an order.");
+        }
+        return updateOrderDto.CustomerId.Value;
+    }
+    private async Task ValidateCustomerExists (Guid customerId)
+    {
+        var customer = await _customerRepository.GetCustomerById(customerId);
+
+        if (customer is null)
+        {
+            _logger.LogWarning("Customer with id {CustomerId} does not exist.", customerId);
+            throw new ValidationException($"Customer with id {customerId} does not exist.");
+        }
+    }
+    private async Task ValidateProducts(IEnumerable<UpdateOrderItemDto> itemsDto)
+    {
+        if (itemsDto is null)
+        {
+            _logger.LogInformation("No order items to validate.");
+            return;
+        }
+
+        foreach (var item in itemsDto)
+        {
+            _logger.LogInformation("Validating product {ProductId} for order update.", item.ProductId);
+
+            if (!item.ProductId.HasValue)
+            {
+                _logger.LogWarning("ProductId is required to update an order item.");
+                throw new ValidationException("ProductId is required to update an order item.");
+            }
+
+            var product = await _productRepository.GetProductById(item.ProductId.Value);
+
+            if (product is null)
+            {
+                _logger.LogWarning("Product with id {ProductId} does not exist.", item.ProductId);
+                throw new ValidationException($"Product with id {item.ProductId.Value} does not exist.");
+            }
+        }
+    }
+    private async Task<Order> GetExistingOrder(Guid id)
+    {
+        var existingOrder = await _repository.GetOrderByIdAsync(id);
+
+        if (existingOrder is null)
+        {
+            _logger.LogWarning("Order with id {OrderId} was not found.", id);
+            throw new ValidationException($"Order with id: {id} was not found.");
+        }
+
+        return existingOrder;
+    }
+    private void UpdateStatusIfProvided(UpdateOrderDto dto, Order order)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.Status))
+        {
+            if (!Enum.TryParse<OrderStatus>(
+                    dto.Status,
+                    ignoreCase: true,
+                    out var status))
+            {
+                _logger.LogWarning("Invalid order status: {Status}", dto.Status);
+                throw new ValidationException("Invalid order status");
+            }
+
+            ApplyStatus(order, status);
+        }
+    }
+    private void UpdateOrderItems(UpdateOrderDto dto, Order order)
+    {
+        if (dto.Items is null)
+            return;
+
+        foreach (var item in dto.Items)
+        {
+            if (!item.ProductId.HasValue)
+                throw new ValidationException("ProductId is required.");
+
+            var existingItem = order.Items
+                .FirstOrDefault(i => i.ProductId == item.ProductId);
+
+            if (existingItem is null)
+                throw new ValidationException($"Product {item.ProductId} not found in order.");
+
+            var unitPrice = item.UnitPrice ?? existingItem.UnitPrice;
+            var quantity = item.Quantity ?? existingItem.Quantity;
+
+            if (item.Quantity.HasValue)
+                existingItem.UpdateQuantity(item.Quantity.Value);
+
+            if (item.UnitPrice.HasValue)
+                existingItem.UpdateUnitPrice(item.UnitPrice.Value);
         }
     }
 }
