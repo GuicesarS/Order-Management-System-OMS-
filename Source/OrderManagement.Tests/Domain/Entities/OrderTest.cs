@@ -25,13 +25,10 @@ public class OrderTest
     [Fact]
     public void Create_ShouldThrowException_CustomerIdEmpty()
     {
-        var order = new OrderBuilder();
-
-        Action act = () => order.BuildWithEmptyCustomerId();
+        Action act = () => OrderBuilder.BuildWithEmptyCustomerId();
 
         act.Should().Throw<DomainValidationException>()
             .WithMessage("*CustomerId*");
-
     }
 
     // Item's Operation Methods 

@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 using OrderManagement.Domain.Entities.OrderItem;
 using OrderManagement.Domain.Exception;
+using OrderManagement.Tests.Domain.Builders;
 
 namespace OrderManagement.Tests.Domain.Entities;
 
