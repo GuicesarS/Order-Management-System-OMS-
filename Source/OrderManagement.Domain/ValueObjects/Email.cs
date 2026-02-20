@@ -3,10 +3,12 @@ using System.Net.Mail;
 
 namespace OrderManagement.Domain.ValueObjects;
 
-public sealed class Email
+public partial class Email
 {
-    public string Value { get; }
-
+    public string Value { get; private set; } = string.Empty;
+    
+    protected Email() { } // EF Core
+    
     private Email(string value)
     {
         Value = value;

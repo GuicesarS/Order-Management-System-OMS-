@@ -69,10 +69,16 @@ app.UseHttpsRedirection();
 
 app.UseExceptionHandler();
 
-app.MapControllers();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<OrderManagementDbContext>();
+    db.Database.Migrate();
+}
 
 await app.RunAsync();
 

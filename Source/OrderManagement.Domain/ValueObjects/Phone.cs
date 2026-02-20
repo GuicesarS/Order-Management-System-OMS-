@@ -3,10 +3,12 @@ using System.Text.RegularExpressions;
 
 namespace OrderManagement.Domain.ValueObjects;
 
-public sealed partial class Phone
+public partial class Phone
 {
-    public string Value { get; }
-
+    public string Value { get; private set; } = string.Empty;
+    
+    protected Phone() { } // EF Core
+    
     private Phone(string value)
     {
         Validate(value);

@@ -28,9 +28,11 @@ public static class ExpressMappingConfig
         // Customer
         Mapper.Register<CreateCustomerDto, Customer>()
             .Member(dest => dest.Id, src => Guid.NewGuid())
-            .Member(dest => dest.Email, src => Email.Create(src.Email));
+            .Member(dest => dest.Email, src => Email.Create(src.Email))
+            .Member(dest => dest.Phone, src => Phone.Create(src.Phone));
         Mapper.Register<Customer, CustomerResponse>()
-            .Member(dest => dest.Email, src => src.Email.Value);
+            .Member(dest => dest.Email, src => src.Email.Value)
+            .Member(dest => dest.Phone, src => src.Phone.Value);
 
         // Product
         Mapper.Register<CreateProductDto, Product>()
