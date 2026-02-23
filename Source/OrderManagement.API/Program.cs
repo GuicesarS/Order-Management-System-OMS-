@@ -2,7 +2,6 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using OrderManagement.API.Configurations.Authentication;
-using OrderManagement.API.Configurations.Mapping;
 using OrderManagement.API.Configurations.Swagger;
 using OrderManagement.API.Handlers;
 using OrderManagement.Application;
@@ -14,7 +13,6 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-ExpressMappingConfig.RegisterMappings();
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -26,6 +24,8 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File("logs/ordermanagementapi-.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 // Add Custom Mapper service
 builder.Services.AddScoped<ICustomMapper, CustomMapper>();
@@ -76,8 +76,8 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<OrderManagementDbContext>();
-    db.Database.Migrate();
+   var db = scope.ServiceProvider.GetRequiredService<OrderManagementDbContext>();
+   db.Database.Migrate();
 }
 
 await app.RunAsync();
