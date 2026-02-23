@@ -1,0 +1,37 @@
+services:
+  api:
+    container_name: ordermanagement-api
+    build:
+      dockerfile: dockerfile
+      context: .
+    ports:
+      - 7212:8080
+    environment:
+       - ASPNETCORE_ENVIRONMENT=Development
+       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+       - Settings__Jwt__SigningKey=${JWT_SIGNING_KEY}
+       - Settings__Jwt__ExpirationTimeMinutes=${JWT_EXPIRATION_MINUTES}
+    depends_on:
+      - dbcontext
+    networks:
+      - ordermanagement-networks
+  dbcontext:
+    image: mcr.microsoft.com/azure-sql-edge
+    environment:
+      - "ACCEPT_EULA=1"
+      - "SA_PASSWORD=${SA_PASSWORD}"
+    volumes:
+      - "ordermanagement-api-azure-edge:/var/opt/mssql"
+    networks:
+       ordermanagement-networks:
+         aliases: 
+          - "sql"
+
+      
+volumes:
+  ordermanagement-api-azure-edge:
+
+
+networks:
+  ordermanagement-networks:
+    driver: bridge
