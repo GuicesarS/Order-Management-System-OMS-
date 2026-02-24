@@ -8,6 +8,7 @@ using OrderManagement.Application;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Infrastructure;
 using OrderManagement.Infrastructure.Data;
+using OrderManagement.Infrastructure.Data.Seed;
 using Serilog;
 
 
@@ -76,8 +77,11 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-   var db = scope.ServiceProvider.GetRequiredService<OrderManagementDbContext>();
-   db.Database.Migrate();
+   var context = scope.ServiceProvider.GetRequiredService<OrderManagementDbContext>();
+   
+   context.Database.Migrate();
+
+   DatabaseSeeder.Seed(context);
 }
 
 await app.RunAsync();
