@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace OrderManagement.Infrastructure.Data;
@@ -8,9 +8,10 @@ public class OrderManagementDbContextFactory : IDesignTimeDbContextFactory<Order
     public OrderManagementDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<OrderManagementDbContext>();
-        optionsBuilder.UseSqlServer("My_ConnectionString");
+
+       var connectionString = "Server=localhost;Port=3306;Database=oms_dev;Uid=root;Pwd=root;";
+        optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 
         return new OrderManagementDbContext(optionsBuilder.Options);
-
     }
 }
