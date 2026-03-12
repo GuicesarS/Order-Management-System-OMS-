@@ -53,7 +53,10 @@ builder.Services.AddSwaggerWithJwt();
 
 // Database configuration
 builder.Services.AddDbContext<OrderManagementDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+});
 
 builder.Host.UseSerilog();
 
