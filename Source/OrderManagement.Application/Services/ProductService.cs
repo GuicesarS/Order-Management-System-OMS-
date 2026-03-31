@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using OrderManagement.Application.Cache;
 using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Common.Extensions;
@@ -16,12 +17,18 @@ public class ProductService : IProductService
     private readonly IProductRepository _repository;
     private readonly ICustomMapper _mapper;
     private readonly ILogger<ProductService> _logger;
+    private readonly ICacheService _cacheService;
 
-    public ProductService(IProductRepository repository, ICustomMapper mapper, ILogger<ProductService> logger)
+    public ProductService(
+        IProductRepository repository, 
+        ICustomMapper mapper, 
+        ILogger<ProductService> logger,
+        ICacheService cacheService)
     {
         _repository = repository;
         _mapper = mapper;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<ProductResponse>> Create(CreateProductDto productDto)
@@ -36,6 +43,8 @@ public class ProductService : IProductService
             productDto.IsActive);
 
         await _repository.AddAsync(product);
+
+        await _cacheService.RemoveAsync(CacheKeys.Products.GetAllProducts);
 
         _logger.LogInformation("Product created successfully with Id: {ProductId}", product.Id);
 
@@ -65,6 +74,9 @@ public class ProductService : IProductService
 
         await _repository.UpdateAsync(existingProduct);
 
+        await _cacheService.RemoveAsync(CacheKeys.Products.GetAllProducts);
+        await _cacheService.RemoveAsync(CacheKeys.Products.GetProductById(id));
+
         _logger.LogInformation("Product with ID: {ProductId} updated successfully", id);
 
         var response = _mapper.Map<Product, ProductResponse>(existingProduct);
@@ -85,6 +97,9 @@ public class ProductService : IProductService
 
         await _repository.DeleteAsync(id);
 
+        await _cacheService.RemoveAsync(CacheKeys.Products.GetAllProducts);
+        await _cacheService.RemoveAsync(CacheKeys.Products.GetProductById(id));
+
         _logger.LogInformation("Product with ID: {ProductId} deleted successfully", id);
 
         return Result<bool>.Ok(true);
@@ -93,7 +108,10 @@ public class ProductService : IProductService
     {
         _logger.LogInformation("Retrieving all products");
 
-        var products = await _repository.GetAllAsync();
+        var products = await _cacheService.GetOrCreateAsync(CacheKeys.Products.GetAllProducts,
+            () => _repository.GetAllAsync(),
+            CachePolicies.Product.AbsoluteExpirationRelativeToNow);
+
         var response = _mapper.Map<IEnumerable<Product>, IEnumerable<ProductResponse>>(products);
 
         _logger.LogInformation("Retrieved {ProductCount} products", response.Count());
@@ -104,7 +122,9 @@ public class ProductService : IProductService
     {
         _logger.LogInformation("Retrieving product with ID: {ProductId}", id);
 
-        var existingProduct = await _repository.GetProductById(id);
+        var existingProduct = await _cacheService.GetOrCreateAsync(CacheKeys.Products.GetProductById(id),
+            () => _repository.GetProductById(id),
+            CachePolicies.Product.AbsoluteExpirationRelativeToNow);
 
         if (existingProduct is null)
         {

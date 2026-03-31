@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using OrderManagement.Application.Cache;
 using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
@@ -19,17 +20,20 @@ public class UserService : IUserService
     private readonly ICustomMapper _mapper;
     private readonly ILogger<UserService> _logger;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ICacheService _cacheService;
 
     public UserService(
         IUserRepository repository, 
         ICustomMapper mapper, 
         ILogger<UserService> logger, 
-        IPasswordHasher passwordHasher)
+        IPasswordHasher passwordHasher,
+        ICacheService cacheService)
     {
         _repository = repository;
         _mapper = mapper;
         _logger = logger;
         _passwordHasher = passwordHasher;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<UserResponse>> Create(CreateUserDto userDto)
@@ -46,6 +50,8 @@ public class UserService : IUserService
         );
 
         await _repository.AddAsync(user);
+
+        await _cacheService.RemoveAsync(CacheKeys.Users.GetAllUsers);
 
         _logger.LogInformation("User {UserId} created successfully with role: {Role}", user.Id, user.Role);
 
@@ -88,6 +94,9 @@ public class UserService : IUserService
 
         await _repository.UpdateAsync(existingUser);
 
+        await _cacheService.RemoveAsync(CacheKeys.Users.GetAllUsers);
+        await _cacheService.RemoveAsync(CacheKeys.Users.GetUserById(id));
+
         _logger.LogInformation("User {UserId} updated successfully", id);
 
         var response = _mapper.Map<User, UserResponse>(existingUser);
@@ -97,7 +106,9 @@ public class UserService : IUserService
     {
         _logger.LogInformation("Fetching user {UserId}", id);
 
-        var user = await _repository.GetUserByIdAsync(id);
+        var user = await _cacheService.GetOrCreateAsync(CacheKeys.Users.GetUserById(id),
+            () => _repository.GetUserByIdAsync(id),
+            CachePolicies.User.AbsoluteExpirationRelativeToNow);
 
         if (user is null)
         {
@@ -114,7 +125,10 @@ public class UserService : IUserService
     {
         _logger.LogInformation("Fetching all users");
 
-        var users = await _repository.GetAllAsync();
+        var users = await _cacheService.GetOrCreateAsync(CacheKeys.Users.GetAllUsers,
+            () => _repository.GetAllAsync(),
+            CachePolicies.User.AbsoluteExpirationRelativeToNow);
+
         var userResponses = _mapper.Map<IEnumerable<User>, IEnumerable<UserResponse>>(users);
 
         _logger.LogInformation("Retrieved {UserCount} users", userResponses.Count());
@@ -134,6 +148,9 @@ public class UserService : IUserService
         }
 
         await _repository.DeleteAsync(id);
+
+        await _cacheService.RemoveAsync(CacheKeys.Users.GetAllUsers);
+        await _cacheService.RemoveAsync(CacheKeys.Users.GetUserById(id));
 
         _logger.LogInformation("User {UserId} deleted successfully", id);
 

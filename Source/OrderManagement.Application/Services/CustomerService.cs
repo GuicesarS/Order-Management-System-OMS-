@@ -9,6 +9,7 @@ using OrderManagement.Domain.Entities.Customer;
 using OrderManagement.Domain.Interfaces;
 using OrderManagement.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
+using OrderManagement.Application.Cache;
 
 namespace OrderManagement.Application.Services;
 
@@ -17,12 +18,17 @@ public class CustomerService : ICustomerService
     private readonly ICustomerRepository _repository;
     private readonly ICustomMapper _mapper;
     private readonly ILogger<CustomerService> _logger;
-
-    public CustomerService(ICustomerRepository repository, ICustomMapper mapper, ILogger<CustomerService> logger)
+    private readonly ICacheService _cacheService;
+    public CustomerService(
+        ICustomerRepository repository, 
+        ICustomMapper mapper, 
+        ILogger<CustomerService> logger,
+        ICacheService cacheService)
     {
         _repository = repository;
         _mapper = mapper;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<CustomerResponse>> Create(CreateCustomerDto customerDto)
@@ -36,6 +42,8 @@ public class CustomerService : ICustomerService
             customerDto.Address);
 
         await _repository.AddAsync(customer);
+
+        await _cacheService.RemoveAsync(CacheKeys.Customers.GetAllCustomers);
 
         _logger.LogInformation("Customer created with ID: {CustomerId}", customer.Id);
 
@@ -68,6 +76,9 @@ public class CustomerService : ICustomerService
 
         await _repository.UpdateAsync(existingCustomer);
 
+        await _cacheService.RemoveAsync(CacheKeys.Customers.GetCustomerById(id));
+        await _cacheService.RemoveAsync(CacheKeys.Customers.GetAllCustomers);
+
         _logger.LogInformation("Customer with ID: {CustomerId} updated successfully", id);
 
         var response = _mapper.Map<Customer, CustomerResponse>(existingCustomer);
@@ -88,6 +99,9 @@ public class CustomerService : ICustomerService
 
         await _repository.DeleteAsync(id);
 
+        await _cacheService.RemoveAsync(CacheKeys.Customers.GetCustomerById(id));
+        await _cacheService.RemoveAsync(CacheKeys.Customers.GetAllCustomers);
+
         _logger.LogInformation("Customer with ID: {CustomerId} deleted successfully", id);
 
         return Result<bool>.Ok(true);
@@ -96,9 +110,13 @@ public class CustomerService : ICustomerService
     {
         _logger.LogInformation("Retrieving all customers");
 
-        var customers = await _repository.GetAllAsync();
+        var customers = await _cacheService.GetOrCreateAsync(
+            CacheKeys.Customers.GetAllCustomers,
+            () => _repository.GetAllAsync(),
+            CachePolicies.Customer.AbsoluteExpirationRelativeToNow);
+
         var customerResponses = _mapper.Map<IEnumerable<Customer>, IEnumerable<CustomerResponse>>(customers);
-        
+
         _logger.LogInformation("Retrieved {CustomerCount} customers", customerResponses.Count());
 
         return Result<IEnumerable<CustomerResponse>>.Ok(customerResponses);
@@ -107,7 +125,10 @@ public class CustomerService : ICustomerService
     {
         _logger.LogInformation("Retrieving customer with ID: {CustomerId}", id);
 
-        var existingCustomer = await _repository.GetCustomerById(id);
+        var existingCustomer = await _cacheService.GetOrCreateAsync(
+            CacheKeys.Customers.GetCustomerById(id),
+            () => _repository.GetCustomerById(id),
+            CachePolicies.Customer.AbsoluteExpirationRelativeToNow);
 
         if (existingCustomer is null)
         {

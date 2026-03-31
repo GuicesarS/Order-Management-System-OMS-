@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using OrderManagement.Application.Cache;
 using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
@@ -20,19 +21,22 @@ public class OrderService : IOrderService
     private readonly IProductRepository _productRepository;
     private readonly ICustomMapper _mapper;
     private readonly ILogger<OrderService> _logger;
+    private readonly ICacheService _cacheService;
 
     public OrderService(
         IOrderRepository repository,
         ICustomerRepository customerRepository,
         IProductRepository productRepository,
         ICustomMapper mapper,
-        ILogger<OrderService> logger)
+        ILogger<OrderService> logger,
+        ICacheService cacheService)
     {
         _repository = repository;
         _customerRepository = customerRepository;
         _productRepository = productRepository;
         _mapper = mapper;
         _logger = logger;
+        _cacheService = cacheService;
     }
 
     public async Task<Result<OrderResponse>> Create(CreateOrderDto orderDto)
@@ -70,6 +74,8 @@ public class OrderService : IOrderService
 
         await _repository.AddAsync(order);
 
+        await _cacheService.RemoveAsync(CacheKeys.Orders.GetAllOrders);
+
         _logger.LogInformation("Order {OrderId} created successfully.", order.Id);
 
         var orderResponse = _mapper.Map<Order, OrderResponse>(order);
@@ -95,6 +101,9 @@ public class OrderService : IOrderService
 
         await _repository.UpdateAsync(existingOrder);
 
+        await _cacheService.RemoveAsync(CacheKeys.Orders.GetAllOrders);
+        await _cacheService.RemoveAsync(CacheKeys.Orders.GetOrderById(id));
+
         _logger.LogInformation("Order {OrderId} updated successfully.", id);
 
         var result = _mapper.Map<Order, OrderResponse>(existingOrder);
@@ -116,6 +125,9 @@ public class OrderService : IOrderService
 
         await _repository.DeleteAsync(id);
 
+        await _cacheService.RemoveAsync(CacheKeys.Orders.GetAllOrders);
+        await _cacheService.RemoveAsync(CacheKeys.Orders.GetOrderById(id));
+
         _logger.LogInformation("Order {OrderId} deleted successfully.", id);
 
         return Result<bool>.Ok(true);
@@ -125,7 +137,10 @@ public class OrderService : IOrderService
     {
         _logger.LogInformation("Retrieving all orders.");
 
-        var orders = await _repository.GetAllAsync();
+        var orders = await _cacheService.GetOrCreateAsync(CacheKeys.Orders.GetAllOrders,
+            () => _repository.GetAllAsync(),
+            CachePolicies.Order.AbsoluteExpirationRelativeToNow);
+
         var ordersResponse = _mapper.Map<IEnumerable<Order>, IEnumerable<OrderResponse>>(orders);
 
         _logger.LogInformation("Retrieved {OrderCount} orders.", ordersResponse.Count());
@@ -137,7 +152,9 @@ public class OrderService : IOrderService
 
         _logger.LogInformation("Retrieving order {OrderId}", id);
 
-        var order = await _repository.GetOrderByIdAsync(id);
+        var order = await _cacheService.GetOrCreateAsync(CacheKeys.Orders.GetOrderById(id),
+            () => _repository.GetOrderByIdAsync(id),
+            CachePolicies.Order.AbsoluteExpirationRelativeToNow);
 
         if (order is null)
         {
