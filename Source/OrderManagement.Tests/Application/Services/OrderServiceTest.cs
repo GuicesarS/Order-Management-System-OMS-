@@ -1,8 +1,10 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using OrderManagement.Application.Cache;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
+using OrderManagement.Application.Interfaces;
 using OrderManagement.Application.Services;
 using OrderManagement.Communication.Dtos.OrderItem;
 using OrderManagement.Communication.Responses;
@@ -24,6 +26,7 @@ public class OrderServiceTest
     private readonly Mock<IProductRepository> _productRepositoryMock;
     private readonly Mock<ICustomMapper> _mapperMock;
     private readonly Mock<ILogger<OrderService>> _loggerMock;
+    private readonly Mock<ICacheService> _cacheServiceMock;
 
     private readonly OrderService _orderService;
 
@@ -34,13 +37,15 @@ public class OrderServiceTest
         _productRepositoryMock = new Mock<IProductRepository>();
         _mapperMock = new Mock<ICustomMapper>();
         _loggerMock = new Mock<ILogger<OrderService>>();
+        _cacheServiceMock = new Mock<ICacheService>();
 
         _orderService = new OrderService(
             _orderRepositoryMock.Object,
             _customerRepositoryMock.Object,
             _productRepositoryMock.Object,
             _mapperMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _cacheServiceMock.Object
         );
     }
 
@@ -82,6 +87,10 @@ public class OrderServiceTest
                 CreatedAt = order.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders))
+            .Returns(Task.CompletedTask);
+
         var result = await _orderService.Create(orderDto);
 
         result.Should().NotBeNull();
@@ -91,6 +100,9 @@ public class OrderServiceTest
         result.Data.Id.Should().NotBe(Guid.Empty);
 
         _orderRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Order>()), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders), Times.Once);
+
         _loggerMock.VerifyLog($"Order {result.Data.Id} created successfully.");
     }
 
@@ -184,6 +196,13 @@ public class OrderServiceTest
                 CreatedAt = existingOrder.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)))
+            .Returns(Task.CompletedTask);
+
         var result = await _orderService.Update(existingOrder.Id, updateDto);
 
         result.Success.Should().BeTrue();
@@ -191,6 +210,10 @@ public class OrderServiceTest
         result.Data!.Id.Should().Be(existingOrder.Id);
 
         _orderRepositoryMock.Verify(r => r.UpdateAsync(existingOrder), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)), Times.Once);
+
         _loggerMock.VerifyLog($"Order {existingOrder.Id} updated successfully.");
     }
 
@@ -240,9 +263,15 @@ public class OrderServiceTest
             .Setup(r => r.GetCustomerById(customer.Id))
             .ReturnsAsync(customer);
 
-        _orderRepositoryMock
-            .Setup(r => r.GetOrderByIdAsync(invalidOrderId))
-            .ReturnsAsync((Order?)null);
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Orders.GetOrderById(invalidOrderId),
+                It.IsAny<Func<Task<Order?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Order?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _orderService.Update(invalidOrderId, updateDto);
 
@@ -388,6 +417,13 @@ public class OrderServiceTest
                 CreatedAt = existingOrder.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)))
+            .Returns(Task.CompletedTask);
+
         var result = await _orderService.Update(existingOrder.Id, updateDto);
 
         result.Success.Should().BeTrue();
@@ -427,6 +463,13 @@ public class OrderServiceTest
                 Status = existingOrder.Status.ToString(),
                 CreatedAt = existingOrder.CreatedAt
             });
+
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)))
+            .Returns(Task.CompletedTask);
 
         var result = await _orderService.Update(existingOrder.Id, updateDto);
 
@@ -468,6 +511,13 @@ public class OrderServiceTest
                 CreatedAt = existingOrder.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)))
+            .Returns(Task.CompletedTask);
+
         var result = await _orderService.Update(existingOrder.Id, updateDto);
 
         result.Success.Should().BeTrue();
@@ -488,12 +538,23 @@ public class OrderServiceTest
             .Setup(r => r.DeleteAsync(existingOrder.Id))
             .Returns(Task.CompletedTask);
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders))
+            .Returns(Task.CompletedTask);
+
         var result = await _orderService.Delete(existingOrder.Id);
 
         result.Success.Should().BeTrue();
         result.Data.Should().BeTrue();
 
         _orderRepositoryMock.Verify(r => r.DeleteAsync(existingOrder.Id), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Orders.GetOrderById(existingOrder.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Orders.GetAllOrders), Times.Once);
+
         _loggerMock.VerifyLog($"Deleting order {existingOrder.Id}");
         _loggerMock.VerifyLog($"Order {existingOrder.Id} deleted successfully.");
     }
@@ -503,9 +564,15 @@ public class OrderServiceTest
     {
         var invalidId = Guid.NewGuid();
 
-        _orderRepositoryMock
-            .Setup(r => r.GetOrderByIdAsync(invalidId))
-            .ReturnsAsync((Order?)null);
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Orders.GetOrderById(invalidId),
+                It.IsAny<Func<Task<Order?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Order?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _orderService.Delete(invalidId);
 
@@ -537,6 +604,16 @@ public class OrderServiceTest
                 CreatedAt = order.CreatedAt
             }));
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Orders.GetAllOrders,
+                It.IsAny<Func<Task<IEnumerable<Order>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<Order>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _orderService.GetAll();
 
         result.Success.Should().BeTrue();
@@ -544,6 +621,11 @@ public class OrderServiceTest
         result.Data!.Count().Should().Be(2);
 
         _loggerMock.VerifyLog($"Retrieved {result.Data!.Count()} orders.");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Orders.GetAllOrders,
+            It.IsAny<Func<Task<IEnumerable<Order>>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -556,6 +638,16 @@ public class OrderServiceTest
         _mapperMock
             .Setup(m => m.Map<IEnumerable<Order>, IEnumerable<OrderResponse>>(It.IsAny<IEnumerable<Order>>()))
             .Returns(Enumerable.Empty<OrderResponse>());
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Orders.GetAllOrders,
+                It.IsAny<Func<Task<IEnumerable<Order>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<Order>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         var result = await _orderService.GetAll();
 
@@ -583,6 +675,16 @@ public class OrderServiceTest
                 CreatedAt = order.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Orders.GetOrderById(existingOrder.Id),
+                It.IsAny<Func<Task<Order?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Order?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _orderService.GetOrderById(existingOrder.Id);
 
         result.Success.Should().BeTrue();
@@ -591,6 +693,11 @@ public class OrderServiceTest
         result.Data.CustomerId.Should().Be(existingOrder.CustomerId);
 
         _loggerMock.VerifyLog($"Order {existingOrder.Id} retrieved successfully.");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Orders.GetOrderById(existingOrder.Id),
+            It.IsAny<Func<Task<Order?>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -598,9 +705,15 @@ public class OrderServiceTest
     {
         var invalidId = Guid.NewGuid();
 
-        _orderRepositoryMock
-            .Setup(r => r.GetOrderByIdAsync(invalidId))
-            .ReturnsAsync((Order?)null);
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Orders.GetOrderById(invalidId),
+                It.IsAny<Func<Task<Order?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Order?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _orderService.GetOrderById(invalidId);
 

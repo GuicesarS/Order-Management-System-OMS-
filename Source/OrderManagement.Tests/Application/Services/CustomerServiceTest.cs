@@ -1,9 +1,11 @@
-﻿using Castle.Core.Resource;
+using Castle.Core.Resource;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using OrderManagement.Application.Cache;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
+using OrderManagement.Application.Interfaces;
 using OrderManagement.Application.Services;
 using OrderManagement.Communication.Dtos.Customer;
 using OrderManagement.Communication.Responses;
@@ -22,6 +24,7 @@ public class CustomerServiceTest
     private readonly Mock<ICustomerRepository> _customerRepositoryMock;
     private readonly Mock<ICustomMapper> _mapperMock;
     private readonly Mock<ILogger<CustomerService>> _loggerMock;
+    private readonly Mock<ICacheService> _cacheServiceMock;
 
     private readonly CustomerService _customerService;
 
@@ -30,11 +33,13 @@ public class CustomerServiceTest
         _customerRepositoryMock = new Mock<ICustomerRepository>();
         _mapperMock = new Mock<ICustomMapper>();
         _loggerMock = new Mock<ILogger<CustomerService>>();
+        _cacheServiceMock = new Mock<ICacheService>();
 
         _customerService = new CustomerService(
             _customerRepositoryMock.Object,
             _mapperMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _cacheServiceMock.Object
         );
     }
 
@@ -60,6 +65,10 @@ public class CustomerServiceTest
                     CreatedAt = customer.CreatedAt
                 });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Customers.GetAllCustomers))
+            .Returns(Task.CompletedTask);
+
         var result = await _customerService.Create(customerDto);
 
         result.Should().NotBeNull();
@@ -74,6 +83,8 @@ public class CustomerServiceTest
 
         _customerRepositoryMock.Verify(r =>
             r.AddAsync(It.IsAny<Customer>()), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Customers.GetAllCustomers), Times.Once);
 
         _loggerMock.VerifyLog($"Customer created with ID: {result.Data.Id}");
     }
@@ -117,6 +128,13 @@ public class CustomerServiceTest
                 CreatedAt = existingCustomer.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Customers.GetCustomerById(existingCustomer.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Customers.GetAllCustomers))
+            .Returns(Task.CompletedTask);
+
         var result = await _customerService.Update(existingCustomer.Id, updateDto);
 
         result.Success.Should().BeTrue();
@@ -125,6 +143,9 @@ public class CustomerServiceTest
 
         _customerRepositoryMock.Verify(r =>
         r.UpdateAsync(existingCustomer), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Customers.GetCustomerById(existingCustomer.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Customers.GetAllCustomers), Times.Once);
 
         _loggerMock.VerifyLog($"Customer with ID: {existingCustomer.Id} updated successfully");
     }
@@ -159,12 +180,22 @@ public class CustomerServiceTest
             .Setup(repo => repo.DeleteAsync(existingCustomer.Id))
             .Returns(Task.CompletedTask);
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Customers.GetCustomerById(existingCustomer.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Customers.GetAllCustomers))
+            .Returns(Task.CompletedTask);
+
         var result = await _customerService.Delete(existingCustomer.Id);
 
         result.Success.Should().BeTrue();
 
         _customerRepositoryMock.Verify(repo =>
         repo.DeleteAsync(existingCustomer.Id), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Customers.GetCustomerById(existingCustomer.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Customers.GetAllCustomers), Times.Once);
 
         _loggerMock.VerifyLog($"Deleting customer with ID: {existingCustomer.Id}");
         _loggerMock.VerifyLog($"Customer with ID: {existingCustomer.Id} deleted successfully");
@@ -222,6 +253,16 @@ public class CustomerServiceTest
                 CreatedAt = c.CreatedAt
             }));
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Customers.GetAllCustomers,
+                It.IsAny<Func<Task<IEnumerable<Customer>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<Customer>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _customerService.GetAll();
 
         result.Success.Should().BeTrue();
@@ -230,6 +271,11 @@ public class CustomerServiceTest
         result.Data!.Select(c => c.Name).Should().Contain(new[] { "João Silva", "Maria Souza" });
 
         _loggerMock.VerifyLog($"Retrieved {result.Data!.Count()} customers");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Customers.GetAllCustomers,
+            It.IsAny<Func<Task<IEnumerable<Customer>>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -253,6 +299,16 @@ public class CustomerServiceTest
                 CreatedAt = c.CreatedAt
             });
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Customers.GetCustomerById(existingCustomer.Id),
+                It.IsAny<Func<Task<Customer?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Customer?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _customerService.GetCustomerById(existingCustomer.Id);
 
         result.Success.Should().BeTrue();
@@ -261,6 +317,11 @@ public class CustomerServiceTest
         result.Data.Name.Should().Be(existingCustomer.Name);
 
         _loggerMock.VerifyLog($"Customer with ID: {existingCustomer.Id} retrieved successfully");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Customers.GetCustomerById(existingCustomer.Id),
+            It.IsAny<Func<Task<Customer?>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -272,10 +333,19 @@ public class CustomerServiceTest
             .Setup(repo => repo.GetCustomerById(id))
             .ReturnsAsync((Customer?)null);
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Customers.GetCustomerById(id),
+                It.IsAny<Func<Task<Customer?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Customer?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         Func<Task> act = async () => await _customerService.GetCustomerById(id);
 
         await act.Should().ThrowAsync<NotFoundException>()
             .WithMessage($"Customer with id: {id} was not found.");
     }
-
 }

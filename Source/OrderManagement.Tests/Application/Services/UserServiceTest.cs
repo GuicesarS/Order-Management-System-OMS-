@@ -1,12 +1,16 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using OrderManagement.Application.Cache;
+using OrderManagement.Application.Common;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
+using OrderManagement.Application.Interfaces;
 using OrderManagement.Application.Services;
 using OrderManagement.Communication.Dtos.User;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.User;
+using OrderManagement.Domain.Enums;
 using OrderManagement.Domain.Exception;
 using OrderManagement.Domain.Interfaces;
 using OrderManagement.Domain.Security.Cryptography;
@@ -22,6 +26,7 @@ public class UserServiceTest
     private readonly Mock<ICustomMapper> _mapperMock;
     private readonly Mock<ILogger<UserService>> _loggerMock;
     private readonly Mock<IPasswordHasher> _passwordHasherMock;
+    private readonly Mock<ICacheService> _cacheServiceMock;
 
     private readonly UserService _userService;
 
@@ -31,12 +36,14 @@ public class UserServiceTest
         _mapperMock = new Mock<ICustomMapper>();
         _loggerMock = new Mock<ILogger<UserService>>();
         _passwordHasherMock = new Mock<IPasswordHasher>();
+        _cacheServiceMock = new Mock<ICacheService>();
 
         _userService = new UserService(
             _userRepositoryMock.Object,
             _mapperMock.Object,
             _loggerMock.Object,
-            _passwordHasherMock.Object
+            _passwordHasherMock.Object,
+            _cacheServiceMock.Object
         );
     }
 
@@ -64,6 +71,10 @@ public class UserServiceTest
                 Role = user.Role.ToString()
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers))
+            .Returns(Task.CompletedTask);
+
         var result = await _userService.Create(userDto);
 
         result.Should().NotBeNull();
@@ -75,6 +86,9 @@ public class UserServiceTest
 
         _userRepositoryMock.Verify(r => r.AddAsync(It.IsAny<User>()), Times.Once);
         _passwordHasherMock.Verify(p => p.Hash(userDto.Password), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers), Times.Once);
+
         _loggerMock.VerifyLog($"User {result.Data.Id} created successfully with role: {result.Data.Role}");
     }
 
@@ -132,6 +146,13 @@ public class UserServiceTest
                 Role = existingUser.Role.ToString()
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetUserById(existingUser.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers))
+            .Returns(Task.CompletedTask);
+
         var result = await _userService.Update(existingUser.Id, updateDto);
 
         result.Success.Should().BeTrue();
@@ -139,6 +160,10 @@ public class UserServiceTest
         result.Data!.Id.Should().Be(existingUser.Id);
 
         _userRepositoryMock.Verify(r => r.UpdateAsync(existingUser), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Users.GetUserById(existingUser.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers), Times.Once);
+
         _loggerMock.VerifyLog($"User {existingUser.Id} updated successfully");
     }
 
@@ -151,6 +176,16 @@ public class UserServiceTest
         _userRepositoryMock
             .Setup(r => r.GetUserByIdAsync(invalidId))
             .ReturnsAsync((User?)null);
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Users.GetUserById(invalidId),
+                It.IsAny<Func<Task<User?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<User?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _userService.Update(invalidId, updateDto);
 
@@ -208,6 +243,13 @@ public class UserServiceTest
                 Role = existingUser.Role.ToString()
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetUserById(existingUser.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers))
+            .Returns(Task.CompletedTask);
+
         await _userService.Update(existingUser.Id, updateDto);
 
         _passwordHasherMock.Verify(p => p.Hash(It.IsAny<string>()), Times.Never);
@@ -226,12 +268,23 @@ public class UserServiceTest
             .Setup(r => r.DeleteAsync(existingUser.Id))
             .Returns(Task.CompletedTask);
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetUserById(existingUser.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers))
+            .Returns(Task.CompletedTask);
+
         var result = await _userService.Delete(existingUser.Id);
 
         result.Success.Should().BeTrue();
         result.Data.Should().BeTrue();
 
         _userRepositoryMock.Verify(r => r.DeleteAsync(existingUser.Id), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Users.GetUserById(existingUser.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Users.GetAllUsers), Times.Once);
+
         _loggerMock.VerifyLog($"Attempting to delete user {existingUser.Id}");
         _loggerMock.VerifyLog($"User {existingUser.Id} deleted successfully");
     }
@@ -244,6 +297,16 @@ public class UserServiceTest
         _userRepositoryMock
             .Setup(r => r.GetUserByIdAsync(invalidId))
             .ReturnsAsync((User?)null);
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Users.GetUserById(invalidId),
+                It.IsAny<Func<Task<User?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<User?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _userService.Delete(invalidId);
 
@@ -274,6 +337,16 @@ public class UserServiceTest
                 Role = user.Role.ToString()
             }));
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Users.GetAllUsers,
+                It.IsAny<Func<Task<IEnumerable<User>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<User>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _userService.GetAll();
 
         result.Success.Should().BeTrue();
@@ -281,6 +354,11 @@ public class UserServiceTest
         result.Data!.Count().Should().Be(2);
 
         _loggerMock.VerifyLog($"Retrieved {result.Data!.Count()} users");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Users.GetAllUsers,
+            It.IsAny<Func<Task<IEnumerable<User>>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -293,6 +371,16 @@ public class UserServiceTest
         _mapperMock
             .Setup(m => m.Map<IEnumerable<User>, IEnumerable<UserResponse>>(It.IsAny<IEnumerable<User>>()))
             .Returns(Enumerable.Empty<UserResponse>());
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Users.GetAllUsers,
+                It.IsAny<Func<Task<IEnumerable<User>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<User>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         var result = await _userService.GetAll();
 
@@ -319,6 +407,16 @@ public class UserServiceTest
                 Role = user.Role.ToString()
             });
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Users.GetUserById(existingUser.Id),
+                It.IsAny<Func<Task<User?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<User?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _userService.GetUserById(existingUser.Id);
 
         result.Success.Should().BeTrue();
@@ -327,6 +425,11 @@ public class UserServiceTest
         result.Data.Name.Should().Be(existingUser.Name);
 
         _loggerMock.VerifyLog($"User {existingUser.Id} retrieved successfully");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Users.GetUserById(existingUser.Id),
+            It.IsAny<Func<Task<User?>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -337,6 +440,16 @@ public class UserServiceTest
         _userRepositoryMock
             .Setup(r => r.GetUserByIdAsync(invalidId))
             .ReturnsAsync((User?)null);
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Users.GetUserById(invalidId),
+                It.IsAny<Func<Task<User?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<User?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _userService.GetUserById(invalidId);
 

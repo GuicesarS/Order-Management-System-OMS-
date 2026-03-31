@@ -1,8 +1,10 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using OrderManagement.Application.Cache;
 using OrderManagement.Application.Common.CustomMapping;
 using OrderManagement.Application.Exceptions;
+using OrderManagement.Application.Interfaces;
 using OrderManagement.Application.Services;
 using OrderManagement.Communication.Responses;
 using OrderManagement.Domain.Entities.Product;
@@ -18,6 +20,7 @@ public class ProductServiceTest
     private readonly Mock<IProductRepository> _productRepositoryMock;
     private readonly Mock<ICustomMapper> _mapperMock;
     private readonly Mock<ILogger<ProductService>> _loggerMock;
+    private readonly Mock<ICacheService> _cacheServiceMock;
 
     private readonly ProductService _productService;
 
@@ -26,11 +29,13 @@ public class ProductServiceTest
         _productRepositoryMock = new Mock<IProductRepository>();
         _mapperMock = new Mock<ICustomMapper>();
         _loggerMock = new Mock<ILogger<ProductService>>();
+        _cacheServiceMock = new Mock<ICacheService>();
 
         _productService = new ProductService(
             _productRepositoryMock.Object,
             _mapperMock.Object,
-            _loggerMock.Object
+            _loggerMock.Object,
+            _cacheServiceMock.Object
         );
     }
 
@@ -55,6 +60,10 @@ public class ProductServiceTest
                 IsActive = product.IsActive
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Products.GetAllProducts))
+            .Returns(Task.CompletedTask);
+
         var result = await _productService.Create(productDto);
 
         result.Should().NotBeNull();
@@ -68,6 +77,9 @@ public class ProductServiceTest
         result.Data.Id.Should().NotBe(Guid.Empty);
 
         _productRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Product>()), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Products.GetAllProducts), Times.Once);
+
         _loggerMock.VerifyLog($"Product created successfully with Id: {result.Data.Id}");
     }
 
@@ -97,6 +109,13 @@ public class ProductServiceTest
                 IsActive = existingProduct.IsActive
             });
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Products.GetProductById(existingProduct.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Products.GetAllProducts))
+            .Returns(Task.CompletedTask);
+
         var result = await _productService.Update(existingProduct.Id, updateDto);
 
         result.Success.Should().BeTrue();
@@ -104,6 +123,10 @@ public class ProductServiceTest
         result.Data!.Id.Should().Be(existingProduct.Id);
 
         _productRepositoryMock.Verify(r => r.UpdateAsync(existingProduct), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Products.GetProductById(existingProduct.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Products.GetAllProducts), Times.Once);
+
         _loggerMock.VerifyLog($"Product with ID: {existingProduct.Id} updated successfully");
     }
 
@@ -116,6 +139,16 @@ public class ProductServiceTest
         _productRepositoryMock
             .Setup(r => r.GetProductById(invalidId))
             .ReturnsAsync((Product?)null);
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Products.GetProductById(invalidId),
+                It.IsAny<Func<Task<Product?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Product?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _productService.Update(invalidId, updateDto);
 
@@ -136,12 +169,23 @@ public class ProductServiceTest
             .Setup(r => r.DeleteAsync(existingProduct.Id))
             .Returns(Task.CompletedTask);
 
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Products.GetProductById(existingProduct.Id)))
+            .Returns(Task.CompletedTask);
+        _cacheServiceMock
+            .Setup(c => c.RemoveAsync(CacheKeys.Products.GetAllProducts))
+            .Returns(Task.CompletedTask);
+
         var result = await _productService.Delete(existingProduct.Id);
 
         result.Success.Should().BeTrue();
         result.Data.Should().BeTrue();
 
         _productRepositoryMock.Verify(r => r.DeleteAsync(existingProduct.Id), Times.Once);
+
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Products.GetProductById(existingProduct.Id)), Times.Once);
+        _cacheServiceMock.Verify(c => c.RemoveAsync(CacheKeys.Products.GetAllProducts), Times.Once);
+
         _loggerMock.VerifyLog($"Deleting product with ID: {existingProduct.Id}");
         _loggerMock.VerifyLog($"Product with ID: {existingProduct.Id} deleted successfully");
     }
@@ -154,6 +198,16 @@ public class ProductServiceTest
         _productRepositoryMock
             .Setup(r => r.GetProductById(invalidId))
             .ReturnsAsync((Product?)null);
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Products.GetProductById(invalidId),
+                It.IsAny<Func<Task<Product?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Product?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         Func<Task> act = async () => await _productService.Delete(invalidId);
 
@@ -186,6 +240,16 @@ public class ProductServiceTest
                 IsActive = product.IsActive
             }));
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Products.GetAllProducts,
+                It.IsAny<Func<Task<IEnumerable<Product>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<Product>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _productService.GetAll();
 
         result.Success.Should().BeTrue();
@@ -193,6 +257,11 @@ public class ProductServiceTest
         result.Data!.Count().Should().Be(2);
 
         _loggerMock.VerifyLog($"Retrieved {result.Data!.Count()} products");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Products.GetAllProducts,
+            It.IsAny<Func<Task<IEnumerable<Product>>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -205,6 +274,16 @@ public class ProductServiceTest
         _mapperMock
             .Setup(m => m.Map<IEnumerable<Product>, IEnumerable<ProductResponse>>(It.IsAny<IEnumerable<Product>>()))
             .Returns(Enumerable.Empty<ProductResponse>());
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Products.GetAllProducts,
+                It.IsAny<Func<Task<IEnumerable<Product>>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<IEnumerable<Product>>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         var result = await _productService.GetAll();
 
@@ -233,6 +312,16 @@ public class ProductServiceTest
                 IsActive = product.IsActive
             });
 
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Products.GetProductById(existingProduct.Id),
+                It.IsAny<Func<Task<Product?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Product?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
+
         var result = await _productService.GetProductById(existingProduct.Id);
 
         result.Success.Should().BeTrue();
@@ -241,6 +330,11 @@ public class ProductServiceTest
         result.Data.Name.Should().Be(existingProduct.Name);
 
         _loggerMock.VerifyLog($"Product with ID: {existingProduct.Id} retrieved successfully");
+
+        _cacheServiceMock.Verify(c => c.GetOrCreateAsync(
+            CacheKeys.Products.GetProductById(existingProduct.Id),
+            It.IsAny<Func<Task<Product?>>>(),
+            It.IsAny<TimeSpan?>()), Times.Once);
     }
 
     [Fact]
@@ -251,6 +345,16 @@ public class ProductServiceTest
         _productRepositoryMock
             .Setup(r => r.GetProductById(invalidId))
             .ReturnsAsync((Product?)null);
+
+        _cacheServiceMock
+            .Setup(c => c.GetOrCreateAsync(
+                CacheKeys.Products.GetProductById(invalidId),
+                It.IsAny<Func<Task<Product?>>>(),
+                It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string key, Func<Task<Product?>> factory, TimeSpan? expiration) =>
+            {
+                return factory().Result;
+            });
 
         var result = await _productService.GetProductById(invalidId);
 
