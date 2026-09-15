@@ -124,6 +124,10 @@ public class OrderManagementDbContext : DbContext
                       .HasColumnType("decimal(18,2)")
                       .IsRequired();
 
+                     builder.Property(i => i.LineTotal)
+                      .HasColumnType("decimal(18,2)")
+                      .IsRequired();
+
 
                      builder.HasOne<Product>()
                       .WithMany()

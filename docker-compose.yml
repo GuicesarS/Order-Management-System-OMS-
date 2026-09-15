@@ -1,20 +1,38 @@
 services:
+  # API .NET — usa o mesmo Dockerfile multi-stage do runtime de produção.
   api:
     container_name: ordermanagement-api
     build:
       dockerfile: dockerfile
       context: .
     ports:
+      # host:container — a API escuta na porta 8080 dentro do container
+      # (ver EXPOSE 8080 no dockerfile); do lado de fora, acessível em :7212.
       - 7212:8080
     environment:
        - ASPNETCORE_ENVIRONMENT=Development
+       # Program.cs lê essas chaves via IConfiguration. O separador "__" (duplo
+       # underscore) é a forma como o ASP.NET Core mapeia variáveis de ambiente
+       # para chaves hierárquicas de configuração — equivale a
+       # "ConnectionStrings:DefaultConnection" no appsettings.json.
        - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
        - Settings__Jwt__SigningKey=${JWT_SIGNING_KEY}
        - Settings__Jwt__ExpirationTimeMinutes=${JWT_EXPIRATION_MINUTES}
+       # Origem do Angular autorizada por CORS (ver Program.cs). Em dev local
+       # sem Docker o Angular roda em host, então aqui listamos a mesma porta
+       # padrão do "ng serve" (4200) para quando o Angular também for
+       # containerizado ou acessar a API publicada neste compose.
+       - Cors__AllowedOrigins__0=${CORS_ALLOWED_ORIGIN}
     depends_on:
       - dbcontext
     networks:
       - ordermanagement-networks
+
+  # Banco de dados: SQL Server (imagem "azure-sql-edge", compatível com
+  # SQL Server e com suporte a ARM/Apple Silicon além de x86/amd64).
+  # Program.cs usa options.UseSqlServer(...), então este container PRECISA
+  # ser SQL Server — não trocar por outra engine sem também trocar o
+  # provider do EF Core e regerar as migrations.
   dbcontext:
     image: mcr.microsoft.com/azure-sql-edge
     environment:
@@ -24,10 +42,13 @@ services:
       - "ordermanagement-api-azure-edge:/var/opt/mssql"
     networks:
        ordermanagement-networks:
-         aliases: 
+         aliases:
+          # "sql" é o hostname que a API usa dentro da rede Docker para
+          # alcançar o banco — é por isso que DB_CONNECTION_STRING no .env
+          # usa "Server=sql,1433" e não "localhost".
           - "sql"
 
-      
+
 volumes:
   ordermanagement-api-azure-edge:
 

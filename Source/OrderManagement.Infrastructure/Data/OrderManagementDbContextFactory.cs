@@ -9,8 +9,11 @@ public class OrderManagementDbContextFactory : IDesignTimeDbContextFactory<Order
     {
         var optionsBuilder = new DbContextOptionsBuilder<OrderManagementDbContext>();
 
-       var connectionString = "Server=localhost;Port=3306;Database=oms_dev;Uid=root;Pwd=root;";
-        optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        // Usada só pelas ferramentas de design-time do EF Core (dotnet ef migrations add/update)
+        // quando rodadas fora do host da aplicação (que normalmente pega a connection string
+        // de appsettings/variáveis de ambiente). Não é a connection string usada em runtime.
+        var connectionString = "Server=localhost,1433;Database=oms_dev;User ID=sa;Password=SuaSenha@123;TrustServerCertificate=true";
+        optionsBuilder.UseSqlServer(connectionString);
 
         return new OrderManagementDbContext(optionsBuilder.Options);
     }
