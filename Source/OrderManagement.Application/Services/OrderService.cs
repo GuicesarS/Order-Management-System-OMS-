@@ -120,7 +120,7 @@ public class OrderService : IOrderService
         if (existingOrder is null)
         {
             _logger.LogWarning("Order with id {OrderId} was not found.", id);
-            throw new ValidationException($"Order with id: {id} was not found.");
+            throw new NotFoundException($"Order with id: {id} was not found.");
         }
 
         await _repository.DeleteAsync(id);
@@ -159,7 +159,7 @@ public class OrderService : IOrderService
         if (order is null)
         {
             _logger.LogWarning("Order with id {OrderId} was not found.", id);
-            throw new ValidationException($"Order with id: {id} was not found.");
+            throw new NotFoundException($"Order with id: {id} was not found.");
         }
 
         var orderResponse = _mapper.Map<Order, OrderResponse>(order);
@@ -235,7 +235,7 @@ public class OrderService : IOrderService
         if (existingOrder is null)
         {
             _logger.LogWarning("Order with id {OrderId} was not found.", id);
-            throw new ValidationException($"Order with id: {id} was not found.");
+            throw new NotFoundException($"Order with id: {id} was not found.");
         }
 
         return existingOrder;

@@ -29,7 +29,7 @@ public class CustomerController : ControllerBase
         if (!result.Success)
             return BadRequest(result.ErrorMessage);
 
-        return CreatedAtAction(nameof(CreateCustomer), new { id = result.Data!.Id }, result.Data);
+        return CreatedAtAction(nameof(GetCustomerById), new { id = result.Data!.Id }, result.Data);
 
     }
 

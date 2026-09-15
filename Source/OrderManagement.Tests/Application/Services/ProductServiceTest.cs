@@ -338,7 +338,7 @@ public class ProductServiceTest
     }
 
     [Fact]
-    public async Task GetProductById_ShouldReturnFailure_WhenProductNotFound()
+    public async Task GetProductById_ShouldThrowNotFoundException_WhenProductNotFound()
     {
         var invalidId = Guid.NewGuid();
 
@@ -356,10 +356,9 @@ public class ProductServiceTest
                 return factory().Result;
             });
 
-        var result = await _productService.GetProductById(invalidId);
+        Func<Task> act = async () => await _productService.GetProductById(invalidId);
 
-        result.Success.Should().BeFalse();
-        result.Data.Should().BeNull();
-        result.ErrorMessage.Should().Be("Product not found.");
+        await act.Should().ThrowAsync<NotFoundException>()
+            .WithMessage($"Product with id: {invalidId} was not found.");
     }
 }

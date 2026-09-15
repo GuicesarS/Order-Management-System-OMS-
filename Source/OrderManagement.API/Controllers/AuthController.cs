@@ -20,6 +20,6 @@ public class AuthController : ControllerBase
     {
         var response = await _authService.Login(login);
 
-        return Ok(response);
+        return Ok(response.Data);
     }
 }

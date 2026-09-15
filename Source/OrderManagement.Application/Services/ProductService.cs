@@ -129,7 +129,7 @@ public class ProductService : IProductService
         if (existingProduct is null)
         {
             _logger.LogWarning("Product with ID: {ProductId} not found", id);
-            return Result<ProductResponse>.Failure("Product not found.");
+            throw new NotFoundException($"Product with id: {id} was not found.");
         }
 
         var response = _mapper.Map<Product, ProductResponse>(existingProduct);

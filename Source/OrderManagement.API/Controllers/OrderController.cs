@@ -79,7 +79,7 @@ public class OrderController : ControllerBase
 
     public async Task<IActionResult> DeleteOrder([FromRoute] Guid id)
     {
-        var result = await _orderService.Delete(id);
-        return Ok(result.Data);
+        await _orderService.Delete(id);
+        return NoContent();
     }
 }

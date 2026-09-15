@@ -250,7 +250,7 @@ public class OrderServiceTest
     }
 
     [Fact]
-    public async Task UpdateOrder_ShouldThrowValidationException_WhenOrderNotFound()
+    public async Task UpdateOrder_ShouldThrowNotFoundException_WhenOrderNotFound()
     {
         var customer = new CustomerBuilder().Build();
         var invalidOrderId = Guid.NewGuid();
@@ -275,7 +275,7 @@ public class OrderServiceTest
 
         Func<Task> act = async () => await _orderService.Update(invalidOrderId, updateDto);
 
-        await act.Should().ThrowAsync<ValidationException>()
+        await act.Should().ThrowAsync<NotFoundException>()
             .WithMessage($"Order with id: {invalidOrderId} was not found.");
     }
 
@@ -560,7 +560,7 @@ public class OrderServiceTest
     }
 
     [Fact]
-    public async Task DeleteOrder_ShouldThrowValidationException_WhenOrderNotFound()
+    public async Task DeleteOrder_ShouldThrowNotFoundException_WhenOrderNotFound()
     {
         var invalidId = Guid.NewGuid();
 
@@ -576,7 +576,7 @@ public class OrderServiceTest
 
         Func<Task> act = async () => await _orderService.Delete(invalidId);
 
-        await act.Should().ThrowAsync<ValidationException>()
+        await act.Should().ThrowAsync<NotFoundException>()
             .WithMessage($"Order with id: {invalidId} was not found.");
     }
 
@@ -701,7 +701,7 @@ public class OrderServiceTest
     }
 
     [Fact]
-    public async Task GetOrderById_ShouldThrowValidationException_WhenOrderNotFound()
+    public async Task GetOrderById_ShouldThrowNotFoundException_WhenOrderNotFound()
     {
         var invalidId = Guid.NewGuid();
 
@@ -717,7 +717,7 @@ public class OrderServiceTest
 
         Func<Task> act = async () => await _orderService.GetOrderById(invalidId);
 
-        await act.Should().ThrowAsync<ValidationException>()
+        await act.Should().ThrowAsync<NotFoundException>()
             .WithMessage($"Order with id: {invalidId} was not found.");
     }
 }
