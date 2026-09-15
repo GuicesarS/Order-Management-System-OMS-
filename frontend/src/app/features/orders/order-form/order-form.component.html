@@ -1,0 +1,78 @@
+<div class="page-header">
+  <button mat-icon-button routerLink="/orders">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1>{{ isEdit ? 'Editar Pedido' : 'Novo Pedido' }}</h1>
+</div>
+
+@if (loading()) {
+  <p>Carregando...</p>
+} @else {
+  <mat-card class="form-card">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Cliente</mat-label>
+          <mat-select formControlName="customerId">
+            @for (customer of customers(); track customer.id) {
+              <mat-option [value]="customer.id">{{ customer.name }}</mat-option>
+            }
+          </mat-select>
+          @if (form.controls.customerId.hasError('required') && form.controls.customerId.touched) {
+            <mat-error>Cliente é obrigatório</mat-error>
+          }
+        </mat-form-field>
+
+        @if (!canEditItems()) {
+          <p class="hint">Este pedido não está mais "Pending" — os itens não podem ser alterados.</p>
+        }
+
+        <h3>Itens</h3>
+        <div formArrayName="items">
+          @for (item of items.controls; track item; let i = $index) {
+            <div class="item-row" [formGroupName]="i">
+              <mat-form-field appearance="outline" class="product-field">
+                <mat-label>Produto</mat-label>
+                <mat-select formControlName="productId" (selectionChange)="onProductChange(i)" [disabled]="!canEditItems()">
+                  @for (product of products(); track product.id) {
+                    <mat-option [value]="product.id">{{ product.name }} ({{ product.price | currency: 'BRL' }})</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="qty-field">
+                <mat-label>Quantidade</mat-label>
+                <input matInput type="number" formControlName="quantity" [readonly]="!canEditItems()" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="price-field">
+                <mat-label>Preço Unit.</mat-label>
+                <input matInput type="number" step="0.01" formControlName="unitPrice" [readonly]="!canEditItems()" />
+              </mat-form-field>
+
+              <button
+                mat-icon-button
+                type="button"
+                (click)="removeItem(i)"
+                [disabled]="items.length <= 1 || !canEditItems()"
+                title="Remover item"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+
+        <button mat-stroked-button type="button" (click)="addItem()" [disabled]="!canEditItems()">
+          <mat-icon>add</mat-icon>
+          Adicionar Item
+        </button>
+
+        <div class="form-actions">
+          <button mat-button type="button" routerLink="/orders">Cancelar</button>
+          <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Salvar</button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+}

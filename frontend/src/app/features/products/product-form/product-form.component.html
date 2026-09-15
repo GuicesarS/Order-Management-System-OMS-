@@ -1,0 +1,51 @@
+<div class="page-header">
+  <button mat-icon-button routerLink="/products">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1>{{ isEdit ? 'Editar Produto' : 'Novo Produto' }}</h1>
+</div>
+
+<mat-card class="form-card">
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="name" />
+        @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <mat-error>Nome é obrigatório</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>SKU</mat-label>
+        <input matInput formControlName="sku" />
+        @if (form.controls.sku.hasError('required') && form.controls.sku.touched) {
+          <mat-error>SKU é obrigatório</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Preço</mat-label>
+        <input matInput type="number" step="0.01" formControlName="price" />
+        @if (form.controls.price.hasError('min') && form.controls.price.touched) {
+          <mat-error>Preço deve ser maior que zero</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Estoque</mat-label>
+        <input matInput type="number" formControlName="stockQuantity" />
+        @if (form.controls.stockQuantity.hasError('min') && form.controls.stockQuantity.touched) {
+          <mat-error>Estoque não pode ser negativo</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-slide-toggle formControlName="isActive" class="active-toggle">Ativo</mat-slide-toggle>
+
+      <div class="form-actions">
+        <button mat-button type="button" routerLink="/products">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Salvar</button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>

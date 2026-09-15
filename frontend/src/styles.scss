@@ -1,0 +1,28 @@
+/* Tema pré-pronto do Angular Material (paleta indigo/pink) — inclui os
+   estilos base de todos os componentes Material usados no app. */
+@use '@angular/material/prebuilt-themes/indigo-pink.css';
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+body {
+  background-color: #f5f6fa;
+}
+
+/* Material Icons (font ligature) — permite usar <mat-icon>nome_do_icone</mat-icon> */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+}

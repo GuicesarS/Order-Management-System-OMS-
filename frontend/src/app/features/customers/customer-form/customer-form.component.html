@@ -1,0 +1,52 @@
+<div class="page-header">
+  <button mat-icon-button routerLink="/customers">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <h1>{{ isEdit ? 'Editar Cliente' : 'Novo Cliente' }}</h1>
+</div>
+
+<mat-card class="form-card">
+  <mat-card-content>
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Nome</mat-label>
+        <input matInput formControlName="name" />
+        @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+          <mat-error>Nome é obrigatório</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email</mat-label>
+        <input matInput type="email" formControlName="email" />
+        @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+          <mat-error>Email é obrigatório</mat-error>
+        }
+        @if (form.controls.email.hasError('email') && form.controls.email.touched) {
+          <mat-error>Email inválido</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Telefone</mat-label>
+        <input matInput formControlName="phone" />
+        @if (form.controls.phone.hasError('required') && form.controls.phone.touched) {
+          <mat-error>Telefone é obrigatório</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Endereço</mat-label>
+        <input matInput formControlName="address" />
+        @if (form.controls.address.hasError('required') && form.controls.address.touched) {
+          <mat-error>Endereço é obrigatório</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="form-actions">
+        <button mat-button type="button" routerLink="/customers">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">Salvar</button>
+      </div>
+    </form>
+  </mat-card-content>
+</mat-card>
